@@ -28,10 +28,10 @@ import type {OnyxKey} from '@src/ONYXKEYS';
 import ROUTES from '@src/ROUTES';
 import ScreenWrapper from "@components/ScreenWrapper";
 import HeaderWithBackButton from "@components/HeaderWithBackButton";
-import * as Illustrations from "@components/Icon/Illustrations";
 import ScrollView from "@components/ScrollView";
 import Section from "@components/Section";
 import useWindowDimensions from "@hooks/useWindowDimensions";
+import SCREENS from "@src/SCREENS";
 
 const keysToPreserve: OnyxKey[] = [
     ONYXKEYS.ACCOUNT,
@@ -109,7 +109,7 @@ function TroubleshootPage({shouldStoreLogs}: TroubleshootPageProps) {
                 title={translate('initialSettingsPage.aboutPage.troubleshoot')}
                 shouldShowBackButton={isSmallScreenWidth}
                 onBackButtonPress={() => Navigation.goBack()}
-                icon={Illustrations.LightBulb}
+                icon={Expensicons.Lightbulb2}
             />
             <ScrollView contentContainerStyle={styles.pt3}>
                 <View style={[styles.flex1, isSmallScreenWidth ? styles.workspaceSectionMobile : styles.workspaceSection]}>
@@ -117,8 +117,9 @@ function TroubleshootPage({shouldStoreLogs}: TroubleshootPageProps) {
                         title={translate('initialSettingsPage.aboutPage.troubleshoot')}
                         isCentralPane
                         subtitleMuted
-                        illustration={LottieAnimations.Coin}
+                        illustration={LottieAnimations.Desk}
                         titleStyles={styles.accountSettingsSectionTitle}
+                        illustrationBackgroundColor={theme.PAGE_THEMES[SCREENS.SETTINGS.TROUBLESHOOT].backgroundColor}
                     >
                     <View style={[styles.settingsPageBody, styles.mt5]}>
                         <Text style={styles.mb4}>
@@ -131,7 +132,7 @@ function TroubleshootPage({shouldStoreLogs}: TroubleshootPageProps) {
                             </TextLink>
                         </Text>
                     </View>
-                    <View style={[styles.ml5, styles.mr8]}>
+                    <View style={[styles.mr8]}>
                         <TestToolRow title="Client side logging">
                             <Switch
                                 accessibilityLabel="Client side logging"
@@ -146,7 +147,7 @@ function TroubleshootPage({shouldStoreLogs}: TroubleshootPageProps) {
                     />
                     {/* Enable additional test features in non-production environments */}
                     {!isProduction && (
-                        <View style={[styles.ml5, styles.mr8, styles.mt6]}>
+                        <View style={[styles.mr8, styles.mt6]}>
                             <TestToolMenu />
                         </View>
                     )}

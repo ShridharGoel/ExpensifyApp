@@ -53,6 +53,7 @@ import DragAndDrop from '@assets/images/drag-and-drop.svg';
 import DragHandles from '@assets/images/drag-handles.svg';
 import Emoji from '@assets/images/emoji.svg';
 import Lightbulb from '@assets/images/emojiCategoryIcons/light-bulb.svg';
+import Lightbulb2 from '@assets/images/emojiCategoryIcons/lightbulb2.svg';
 import EmptyStateAttachReceipt from '@assets/images/empty-state__attach-receipt.svg';
 import EmptyStateRoutePending from '@assets/images/emptystate__routepending.svg';
 import EReceiptIcon from '@assets/images/eReceiptIcon.svg';
@@ -316,4 +317,5 @@ export {
     ChatBubbleReply,
     Lightbulb,
     DocumentPlus,
+    Lightbulb2
 };
