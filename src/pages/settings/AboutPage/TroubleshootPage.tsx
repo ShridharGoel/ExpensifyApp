@@ -26,7 +26,12 @@ import type {TranslationPaths} from '@src/languages/types';
 import ONYXKEYS from '@src/ONYXKEYS';
 import type {OnyxKey} from '@src/ONYXKEYS';
 import ROUTES from '@src/ROUTES';
-import SCREENS from '@src/SCREENS';
+import ScreenWrapper from "@components/ScreenWrapper";
+import HeaderWithBackButton from "@components/HeaderWithBackButton";
+import * as Illustrations from "@components/Icon/Illustrations";
+import ScrollView from "@components/ScrollView";
+import Section from "@components/Section";
+import useWindowDimensions from "@hooks/useWindowDimensions";
 
 const keysToPreserve: OnyxKey[] = [
     ONYXKEYS.ACCOUNT,
@@ -92,60 +97,77 @@ function TroubleshootPage({shouldStoreLogs}: TroubleshootPageProps) {
             .reverse();
     }, [shouldStoreLogs, translate, waitForNavigate]);
 
+    const {isSmallScreenWidth} = useWindowDimensions();
+
     return (
-        <IllustratedHeaderPageLayout
-            title={translate('initialSettingsPage.aboutPage.troubleshoot')}
-            onBackButtonPress={() => Navigation.goBack()}
-            backgroundColor={theme.PAGE_THEMES[SCREENS.SETTINGS.TROUBLESHOOT].backgroundColor}
-            illustration={LottieAnimations.Desk}
+        <ScreenWrapper
+            shouldEnablePickerAvoiding={false}
+            shouldShowOfflineIndicatorInWideScreen
             testID={TroubleshootPage.displayName}
         >
-            <View style={[styles.settingsPageBody, styles.ph5]}>
-                <Text style={[styles.textHeadline, styles.mb1]}>{translate('initialSettingsPage.aboutPage.troubleshoot')}</Text>
-                <Text style={styles.mb4}>
-                    <Text>{translate('initialSettingsPage.troubleshoot.description')}</Text>{' '}
-                    <TextLink
-                        style={styles.link}
-                        onPress={() => Report.navigateToConciergeChat()}
+            <HeaderWithBackButton
+                title={translate('initialSettingsPage.aboutPage.troubleshoot')}
+                shouldShowBackButton={isSmallScreenWidth}
+                onBackButtonPress={() => Navigation.goBack()}
+                icon={Illustrations.LightBulb}
+            />
+            <ScrollView contentContainerStyle={styles.pt3}>
+                <View style={[styles.flex1, isSmallScreenWidth ? styles.workspaceSectionMobile : styles.workspaceSection]}>
+                    <Section
+                        title={translate('initialSettingsPage.aboutPage.troubleshoot')}
+                        isCentralPane
+                        subtitleMuted
+                        illustration={LottieAnimations.Coin}
+                        titleStyles={styles.accountSettingsSectionTitle}
                     >
-                        {translate('initialSettingsPage.troubleshoot.submitBug')}
-                    </TextLink>
-                </Text>
-            </View>
-            <View style={[styles.ml5, styles.mr8]}>
-                <TestToolRow title="Client side logging">
-                    <Switch
-                        accessibilityLabel="Client side logging"
-                        isOn={!!shouldStoreLogs}
-                        onToggle={() => (shouldStoreLogs ? Console.disableLoggingAndFlushLogs() : Console.setShouldStoreLogs(true))}
+                    <View style={[styles.settingsPageBody, styles.mt5]}>
+                        <Text style={styles.mb4}>
+                            <Text>{translate('initialSettingsPage.troubleshoot.description')}</Text>{' '}
+                            <TextLink
+                                style={styles.link}
+                                onPress={() => Report.navigateToConciergeChat()}
+                            >
+                                {translate('initialSettingsPage.troubleshoot.submitBug')}
+                            </TextLink>
+                        </Text>
+                    </View>
+                    <View style={[styles.ml5, styles.mr8]}>
+                        <TestToolRow title="Client side logging">
+                            <Switch
+                                accessibilityLabel="Client side logging"
+                                isOn={!!shouldStoreLogs}
+                                onToggle={() => (shouldStoreLogs ? Console.disableLoggingAndFlushLogs() : Console.setShouldStoreLogs(true))}
+                            />
+                        </TestToolRow>
+                    </View>
+                    <MenuItemList
+                        menuItems={menuItems}
+                        shouldUseSingleExecution
                     />
-                </TestToolRow>
-            </View>
-            <MenuItemList
-                menuItems={menuItems}
-                shouldUseSingleExecution
-            />
-            {/* Enable additional test features in non-production environments */}
-            {!isProduction && (
-                <View style={[styles.ml5, styles.mr8, styles.mt6]}>
-                    <TestToolMenu />
+                    {/* Enable additional test features in non-production environments */}
+                    {!isProduction && (
+                        <View style={[styles.ml5, styles.mr8, styles.mt6]}>
+                            <TestToolMenu />
+                        </View>
+                    )}
+                    <ConfirmModal
+                        title={translate('common.areYouSure')}
+                        isVisible={isConfirmationModalVisible}
+                        onConfirm={() => {
+                            setIsConfirmationModalVisible(false);
+                            Onyx.clear(keysToPreserve).then(() => {
+                                App.openApp();
+                            });
+                        }}
+                        onCancel={() => setIsConfirmationModalVisible(false)}
+                        prompt={translate('initialSettingsPage.troubleshoot.confirmResetDescription')}
+                        confirmText={translate('initialSettingsPage.troubleshoot.resetAndRefresh')}
+                        cancelText={translate('common.cancel')}
+                    />
+                    </Section>
                 </View>
-            )}
-            <ConfirmModal
-                title={translate('common.areYouSure')}
-                isVisible={isConfirmationModalVisible}
-                onConfirm={() => {
-                    setIsConfirmationModalVisible(false);
-                    Onyx.clear(keysToPreserve).then(() => {
-                        App.openApp();
-                    });
-                }}
-                onCancel={() => setIsConfirmationModalVisible(false)}
-                prompt={translate('initialSettingsPage.troubleshoot.confirmResetDescription')}
-                confirmText={translate('initialSettingsPage.troubleshoot.resetAndRefresh')}
-                cancelText={translate('common.cancel')}
-            />
-        </IllustratedHeaderPageLayout>
+            </ScrollView>
+        </ScreenWrapper>
     );
 }
 
