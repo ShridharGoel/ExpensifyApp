@@ -1757,6 +1757,7 @@ function getGroupChatName(participantAccountIDs?: number[], shouldApplyLimit = f
     if (reportID) {
         const reportKey = `${ONYXKEYS.COLLECTION.REPORT}${reportID}`;
         const reportName = allReports?.[reportKey]?.reportName;
+        console.log(`reportName ${reportName}`)
         if (reportName) {
             return reportName;
         }
