@@ -45,7 +45,9 @@ function TestToolsModal({isTestToolsModalOpen = false}: TestToolsModalProps) {
                     {translate('initialSettingsPage.troubleshoot.releaseOptions')}
                 </Text>
                 <ProfilingToolMenu />
-                <ClientSideLoggingToolMenu isViaTestToolsModal closeTestToolsModal={toggleTestToolsModal}/>
+                <ClientSideLoggingToolMenu
+                    isViaTestToolsModal
+                />
             </View>
         </Modal>
     );

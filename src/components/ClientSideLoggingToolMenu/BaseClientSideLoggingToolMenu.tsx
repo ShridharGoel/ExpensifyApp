@@ -12,7 +12,9 @@ import * as Console from '@libs/actions/Console';
 import {parseStringifiedMessages} from '@libs/Console';
 import ONYXKEYS from '@src/ONYXKEYS';
 import type {CapturedLogs, Log} from '@src/types/onyx';
-import ConsoleModal from "./ConsoleModal";
+import Navigation from "@navigation/Navigation";
+import ROUTES from "@src/ROUTES";
+import useWaitForNavigation from "@hooks/useWaitForNavigation";
 
 type BaseClientSideLoggingToolMenuOnyxProps = {
     /** Logs captured on the current device */
@@ -33,11 +35,17 @@ type BaseClientSideLoggingToolProps = {
     onEnableLogging?: () => void;
     /** Boolean to know if this was opened via test tools modal */
     isViaTestToolsModal: boolean;
-    /** Action to close the test tools modal */
-    closeTestToolsModal: () => void;
 } & BaseClientSideLoggingToolMenuOnyxProps;
 
-function BaseClientSideLoggingToolMenu({shouldStoreLogs, capturedLogs, file, onShareLogs, onDisableLogging, onEnableLogging, isViaTestToolsModal, closeTestToolsModal}: BaseClientSideLoggingToolProps) {
+function BaseClientSideLoggingToolMenu({
+    shouldStoreLogs,
+    capturedLogs,
+    file,
+    onShareLogs,
+    onDisableLogging,
+    onEnableLogging,
+    isViaTestToolsModal,
+}: BaseClientSideLoggingToolProps) {
     const {translate} = useLocalize();
 
     const onToggle = () => {
@@ -64,7 +72,6 @@ function BaseClientSideLoggingToolMenu({shouldStoreLogs, capturedLogs, file, onS
         Console.disableLoggingAndFlushLogs();
     };
     const styles = useThemeStyles();
-    const [isConsoleModalVisible, setIsConsoleModalVisible] = useState(false);
 
     return (
         <>
@@ -75,15 +82,15 @@ function BaseClientSideLoggingToolMenu({shouldStoreLogs, capturedLogs, file, onS
                     onToggle={onToggle}
                 />
             </TestToolRow>
-            {!!shouldStoreLogs && isViaTestToolsModal &&
+            {!!shouldStoreLogs && isViaTestToolsModal && (
                 <TestToolRow title={translate('initialSettingsPage.troubleshoot.debugConsole')}>
                     <Button
                         small
                         text={translate('initialSettingsPage.debugConsole.viewConsole')}
-                        onPress={() => setIsConsoleModalVisible(true)}
+                        onPress={() => Navigation.navigate(ROUTES.SETTINGS_CONSOLE)}
                     />
                 </TestToolRow>
-            }
+            )}
             {!!file && (
                 <>
                     <Text style={[styles.textLabelSupporting, styles.mb4]}>{`path: ${file.path}`}</Text>
@@ -96,13 +103,6 @@ function BaseClientSideLoggingToolMenu({shouldStoreLogs, capturedLogs, file, onS
                     </TestToolRow>
                 </>
             )}
-            <ConsoleModal
-                isVisible={isConsoleModalVisible && !!shouldStoreLogs}
-                onClose={() => {
-                    setIsConsoleModalVisible(false)
-                }}
-                closeTestToolsModal={closeTestToolsModal}
-            />
         </>
     );
 }
