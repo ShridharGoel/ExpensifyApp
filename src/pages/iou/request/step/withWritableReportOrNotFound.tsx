@@ -2,7 +2,7 @@ import type {RouteProp} from '@react-navigation/core';
 import type {ComponentType, ForwardedRef, RefAttributes} from 'react';
 import React, {forwardRef} from 'react';
 import type {OnyxEntry} from 'react-native-onyx';
-import {withOnyx} from 'react-native-onyx';
+import {OnyxCollection, withOnyx} from 'react-native-onyx';
 import FullPageNotFoundView from '@components/BlockingViews/FullPageNotFoundView';
 import getComponentDisplayName from '@libs/getComponentDisplayName';
 import type {MoneyRequestNavigatorParamList} from '@libs/Navigation/types';
@@ -10,11 +10,15 @@ import * as ReportUtils from '@libs/ReportUtils';
 import CONST from '@src/CONST';
 import ONYXKEYS from '@src/ONYXKEYS';
 import type SCREENS from '@src/SCREENS';
-import type {Report} from '@src/types/onyx';
+import type {Policy, Report} from '@src/types/onyx';
+import canNotAccessRequestPage from "@pages/iou/IOURequestPageAccessValidationUtils";
+import * as IOU from "@userActions/IOU";
 
 type WithWritableReportOrNotFoundOnyxProps = {
     /** The report corresponding to the reportID in the route params */
     report: OnyxEntry<Report>;
+    policy: OnyxEntry<Policy>;
+    allPolicies: OnyxCollection<Policy>;
 };
 
 type MoneyRequestRouteName =
@@ -52,7 +56,7 @@ export default function <TProps extends WithWritableReportOrNotFoundProps<MoneyR
             .includes(route.params?.iouType);
         const canUserPerformWriteAction = ReportUtils.canUserPerformWriteAction(report);
 
-        if (iouTypeParamIsInvalid || !canUserPerformWriteAction) {
+        if (iouTypeParamIsInvalid || !canUserPerformWriteAction || canNotAccessRequestPage(props.report, props.policy, route.params?.iouType, props.allPolicies)) {
             return <FullPageNotFoundView shouldShow />;
         }
 
@@ -70,6 +74,12 @@ export default function <TProps extends WithWritableReportOrNotFoundProps<MoneyR
     return withOnyx<TProps & RefAttributes<TRef>, WithWritableReportOrNotFoundOnyxProps>({
         report: {
             key: ({route}) => `${ONYXKEYS.COLLECTION.REPORT}${route.params.reportID ?? '0'}`,
+        },
+        policy: {
+            key: ({report, transaction}) => `${ONYXKEYS.COLLECTION.POLICY}${IOU.getIOURequestPolicyID(transaction, report)}`,
+        },
+        allPolicies: {
+            key: ONYXKEYS.COLLECTION.POLICY,
         },
     })(forwardRef(WithWritableReportOrNotFound));
 }
