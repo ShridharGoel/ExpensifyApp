@@ -99,7 +99,7 @@ function DateCell({transactionItem, showTooltip, isLargeScreenWidth}: Transactio
     const styles = useThemeStyles();
 
     const created = getCreated(transactionItem);
-    const date = DateUtils.formatWithUTCTimeZone(created, DateUtils.doesDateBelongToAPastYear(transactionItem) ? CONST.DATE.MONTH_DAY_YEAR_ABBR_FORMAT : CONST.DATE.MONTH_DAY_ABBR_FORMAT);
+    const date = DateUtils.formatWithUTCTimeZone(created, DateUtils.doesDateBelongToAPastYear(created) ? CONST.DATE.MONTH_DAY_YEAR_ABBR_FORMAT : CONST.DATE.MONTH_DAY_ABBR_FORMAT);
 
     return (
         <TextWithTooltip
