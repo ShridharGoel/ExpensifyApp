@@ -54,7 +54,6 @@ type TransactionListItemRowProps = {
     containerStyle?: StyleProp<ViewStyle>;
     isHovered?: boolean;
     isChildListItem?: boolean;
-    doesAtleastOneExpenseBelongToAPastYear: boolean;
 };
 
 const getTypeIcon = (type?: SearchTransactionType) => {
