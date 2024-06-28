@@ -143,6 +143,7 @@ function ReportDetailsPage({policies, report, session, personalDetails}: ReportD
 
     const caseID = useMemo((): CaseID => {
         // 3. MoneyReportHeader
+        console.log(isMoneyRequestReport)
         if (isMoneyRequestReport || isInvoiceReport) {
             return CASES.MONEY_REPORT;
         }
@@ -445,7 +446,7 @@ function ReportDetailsPage({policies, report, session, personalDetails}: ReportD
 
     const canHoldUnholdReportAction = ReportUtils.canHoldUnholdReportAction(parentReportAction);
     const shouldShowHoldAction =
-        caseID !== CASES.MONEY_REPORT && (canHoldUnholdReportAction.canHoldRequest || canHoldUnholdReportAction.canUnholdRequest) && !ReportUtils.isArchivedRoom(parentReport);
+        (canHoldUnholdReportAction.canHoldRequest || canHoldUnholdReportAction.canUnholdRequest) && !ReportUtils.isArchivedRoom(parentReport);
 
     const canJoin = ReportUtils.canJoinChat(report, parentReportAction, policy);
 
