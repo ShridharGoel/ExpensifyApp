@@ -38,10 +38,10 @@ function Composer(
     ref: ForwardedRef<TextInput>,
 ) {
     const textInput = useRef<AnimatedMarkdownTextInputRef | null>(null);
-    const {isFocused, shouldResetFocus} = useResetComposerFocus(textInput);
-    const textContainsOnlyEmojis = useMemo(() => EmojiUtils.containsOnlyEmojis(value ?? ''), [value]);
+    const {isFocused, shouldResetFocusRef} = useResetComposerFocus(textInput);
+    const doesTextContainOnlyEmojis = useMemo(() => EmojiUtils.containsOnlyEmojis(value ?? ''), [value]);
     const theme = useTheme();
-    const markdownStyle = useMarkdownStyle(value, !isGroupPolicyReport ? excludeReportMentionStyle : excludeNoStyles);
+    const markdownStyle = useMarkdownStyle(doesTextContainOnlyEmojis, !isGroupPolicyReport ? excludeReportMentionStyle : excludeNoStyles);
     const styles = useThemeStyles();
     const StyleUtils = useStyleUtils();
 
@@ -50,6 +50,7 @@ function Composer(
      * @param {Element} el
      */
     const setTextInputRef = useCallback((el: AnimatedMarkdownTextInputRef) => {
+        // eslint-disable-next-line react-compiler/react-compiler
         textInput.current = el;
         if (typeof ref !== 'function' || textInput.current === null) {
             return;
@@ -60,7 +61,7 @@ function Composer(
         // <constructor ref={el => this.textInput = el} /> this will not
         // return a ref to the component, but rather the HTML element by default
         ref(textInput.current);
-        // eslint-disable-next-line react-hooks/exhaustive-deps
+        // eslint-disable-next-line react-compiler/react-compiler, react-hooks/exhaustive-deps
     }, []);
 
     useEffect(() => {
@@ -72,7 +73,10 @@ function Composer(
     }, [shouldClear, onClear]);
 
     const maxHeightStyle = useMemo(() => StyleUtils.getComposerMaxHeightStyle(maxLines, isComposerFullSize), [StyleUtils, isComposerFullSize, maxLines]);
-    const composerStyle = useMemo(() => StyleSheet.flatten([style, textContainsOnlyEmojis ? styles.onlyEmojisTextLineHeight : {}]), [style, textContainsOnlyEmojis, styles]);
+    const composerStyle = useMemo(
+        () => StyleSheet.flatten([style, doesTextContainOnlyEmojis ? styles.onlyEmojisTextLineHeight : styles.emojisWithTextLineHeight]),
+        [style, doesTextContainOnlyEmojis, styles],
+    );
 
     return (
         <RNMarkdownTextInput
@@ -93,7 +97,8 @@ function Composer(
             readOnly={isDisabled}
             onBlur={(e) => {
                 if (!isFocused) {
-                    shouldResetFocus.current = true; // detect the input is blurred when the page is hidden
+                    // eslint-disable-next-line react-compiler/react-compiler
+                    shouldResetFocusRef.current = true; // detect the input is blurred when the page is hidden
                 }
                 props?.onBlur?.(e);
             }}

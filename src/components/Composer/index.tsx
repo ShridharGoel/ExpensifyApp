@@ -80,10 +80,10 @@ function Composer(
     }: ComposerProps,
     ref: ForwardedRef<TextInput | HTMLInputElement>,
 ) {
-    const textContainsOnlyEmojis = useMemo(() => EmojiUtils.containsOnlyEmojis(value ?? ''), [value]);
+    const doesTextContainOnlyEmojis = useMemo(() => EmojiUtils.containsOnlyEmojis(value ?? ''), [value]);
     const theme = useTheme();
     const styles = useThemeStyles();
-    const markdownStyle = useMarkdownStyle(value, !isGroupPolicyReport ? excludeReportMentionStyle : excludeNoStyles);
+    const markdownStyle = useMarkdownStyle(doesTextContainOnlyEmojis, !isGroupPolicyReport ? excludeReportMentionStyle : excludeNoStyles);
     const StyleUtils = useStyleUtils();
     const textRef = useRef<HTMLElement & RNText>(null);
     const textInput = useRef<AnimatedMarkdownTextInputRef | null>(null);
@@ -116,12 +116,11 @@ function Composer(
     }, [shouldClear, onClear]);
 
     useEffect(() => {
-        setSelection((prevSelection) => {
-            if (!!prevSelection && selectionProp.start === prevSelection.start && selectionProp.end === prevSelection.end) {
-                return;
-            }
-            return selectionProp;
-        });
+        if (!!selection && selectionProp.start === selection.start && selectionProp.end === selection.end) {
+            return;
+        }
+        setSelection(selectionProp);
+        // eslint-disable-next-line react-compiler/react-compiler, react-hooks/exhaustive-deps
     }, [selectionProp]);
 
     /**
@@ -277,8 +276,9 @@ function Composer(
         if (!textInput.current || prevScroll === undefined) {
             return;
         }
+        // eslint-disable-next-line react-compiler/react-compiler
         textInput.current.scrollTop = prevScroll;
-        // eslint-disable-next-line react-hooks/exhaustive-deps
+        // eslint-disable-next-line react-compiler/react-compiler, react-hooks/exhaustive-deps
     }, [isComposerFullSize]);
 
     useHtmlPaste(textInput, handlePaste, true);
@@ -295,7 +295,7 @@ function Composer(
             }
             ReportActionComposeFocusManager.clear();
         };
-        // eslint-disable-next-line react-hooks/exhaustive-deps
+        // eslint-disable-next-line react-compiler/react-compiler, react-hooks/exhaustive-deps
     }, []);
 
     const handleKeyPress = useCallback(
@@ -345,10 +345,9 @@ function Composer(
             scrollStyleMemo,
             StyleUtils.getComposerMaxHeightStyle(maxLines, isComposerFullSize),
             isComposerFullSize ? ({height: '100%', maxHeight: 'none' as DimensionValue} as TextStyle) : undefined,
-            textContainsOnlyEmojis ? styles.onlyEmojisTextLineHeight : {},
         ],
 
-        [style, styles.rtlTextRenderForSafari, styles.onlyEmojisTextLineHeight, scrollStyleMemo, StyleUtils, maxLines, isComposerFullSize, textContainsOnlyEmojis],
+        [style, styles.rtlTextRenderForSafari, scrollStyleMemo, StyleUtils, maxLines, isComposerFullSize],
     );
 
     return (

@@ -1,5 +1,6 @@
 import {useFocusEffect, useIsFocused} from '@react-navigation/native';
 import type {StackScreenProps} from '@react-navigation/stack';
+import lodashSortBy from 'lodash/sortBy';
 import React, {useCallback, useEffect, useMemo, useState} from 'react';
 import {ActivityIndicator, View} from 'react-native';
 import {useOnyx} from 'react-native-onyx';
@@ -7,6 +8,7 @@ import Button from '@components/Button';
 import ButtonWithDropdownMenu from '@components/ButtonWithDropdownMenu';
 import type {DropdownOption} from '@components/ButtonWithDropdownMenu/types';
 import ConfirmModal from '@components/ConfirmModal';
+import EmptyStateComponent from '@components/EmptyStateComponent';
 import HeaderWithBackButton from '@components/HeaderWithBackButton';
 import * as Expensicons from '@components/Icon/Expensicons';
 import * as Illustrations from '@components/Icon/Illustrations';
@@ -14,15 +16,15 @@ import ScreenWrapper from '@components/ScreenWrapper';
 import SelectionList from '@components/SelectionList';
 import ListItemRightCaretWithLabel from '@components/SelectionList/ListItemRightCaretWithLabel';
 import TableListItem from '@components/SelectionList/TableListItem';
+import TableListItemSkeleton from '@components/Skeletons/TableRowSkeleton';
 import Text from '@components/Text';
 import TextLink from '@components/TextLink';
-import WorkspaceEmptyStateSection from '@components/WorkspaceEmptyStateSection';
 import useEnvironment from '@hooks/useEnvironment';
 import useLocalize from '@hooks/useLocalize';
 import useNetwork from '@hooks/useNetwork';
+import useResponsiveLayout from '@hooks/useResponsiveLayout';
 import useTheme from '@hooks/useTheme';
 import useThemeStyles from '@hooks/useThemeStyles';
-import useWindowDimensions from '@hooks/useWindowDimensions';
 import * as DeviceCapabilities from '@libs/DeviceCapabilities';
 import localeCompare from '@libs/LocaleCompare';
 import Navigation from '@libs/Navigation/Navigation';
@@ -34,13 +36,14 @@ import CONST from '@src/CONST';
 import ONYXKEYS from '@src/ONYXKEYS';
 import ROUTES from '@src/ROUTES';
 import type SCREENS from '@src/SCREENS';
+import type {PendingAction} from '@src/types/onyx/OnyxCommon';
 import type DeepValueOf from '@src/types/utils/DeepValueOf';
-import type {TagListItem} from './types';
+import type {PolicyTag, PolicyTagList, TagListItem} from './types';
 
 type WorkspaceTagsPageProps = StackScreenProps<FullScreenNavigatorParamList, typeof SCREENS.WORKSPACE.TAGS>;
 
 function WorkspaceTagsPage({route}: WorkspaceTagsPageProps) {
-    const {isSmallScreenWidth} = useWindowDimensions();
+    const {shouldUseNarrowLayout} = useResponsiveLayout();
     const styles = useThemeStyles();
     const theme = useTheme();
     const {translate} = useLocalize();
@@ -71,6 +74,15 @@ function WorkspaceTagsPage({route}: WorkspaceTagsPageProps) {
         setSelectedTags({});
     }, [isFocused]);
 
+    const getPendingAction = (policyTagList: PolicyTagList): PendingAction | undefined => {
+        if (!policyTagList) {
+            return undefined;
+        }
+        return (policyTagList.pendingAction as PendingAction) ?? Object.values(policyTagList.tags).some((tag: PolicyTag) => tag.pendingAction)
+            ? CONST.RED_BRICK_ROAD_PENDING_ACTION.UPDATE
+            : undefined;
+    };
+
     const tagList = useMemo<TagListItem[]>(() => {
         if (isMultiLevelTags) {
             return policyTagLists.map((policyTagList) => ({
@@ -79,6 +91,7 @@ function WorkspaceTagsPage({route}: WorkspaceTagsPageProps) {
                 text: PolicyUtils.getCleanedTagName(policyTagList.name),
                 keyForList: String(policyTagList.orderWeight),
                 isSelected: selectedTags[policyTagList.name],
+                pendingAction: getPendingAction(policyTagList),
                 enabled: true,
                 required: policyTagList.required,
                 rightElement: (
@@ -89,19 +102,18 @@ function WorkspaceTagsPage({route}: WorkspaceTagsPageProps) {
                 ),
             }));
         }
-        return Object.values(policyTagLists[0]?.tags ?? {})
-            .sort((tagA, tagB) => localeCompare(tagA.name, tagB.name))
-            .map((tag) => ({
-                value: tag.name,
-                text: PolicyUtils.getCleanedTagName(tag.name),
-                keyForList: tag.name,
-                isSelected: selectedTags[tag.name],
-                pendingAction: tag.pendingAction,
-                errors: tag.errors ?? undefined,
-                enabled: tag.enabled,
-                isDisabled: tag.pendingAction === CONST.RED_BRICK_ROAD_PENDING_ACTION.DELETE,
-                rightElement: <ListItemRightCaretWithLabel labelText={tag.enabled ? translate('workspace.common.enabled') : translate('workspace.common.disabled')} />,
-            }));
+        const sortedTags = lodashSortBy(Object.values(policyTagLists[0]?.tags ?? {}), 'name', localeCompare) as PolicyTag[];
+        return sortedTags.map((tag) => ({
+            value: tag.name,
+            text: PolicyUtils.getCleanedTagName(tag.name),
+            keyForList: tag.name,
+            isSelected: selectedTags[tag.name],
+            pendingAction: tag.pendingAction,
+            errors: tag.errors ?? undefined,
+            enabled: tag.enabled,
+            isDisabled: tag.pendingAction === CONST.RED_BRICK_ROAD_PENDING_ACTION.DELETE,
+            rightElement: <ListItemRightCaretWithLabel labelText={tag.enabled ? translate('workspace.common.enabled') : translate('workspace.common.disabled')} />,
+        }));
     }, [isMultiLevelTags, policyTagLists, selectedTags, translate]);
 
     const tagListKeyedByName = useMemo(
@@ -178,7 +190,7 @@ function WorkspaceTagsPage({route}: WorkspaceTagsPageProps) {
 
         if (selectedTagsArray.length === 0) {
             return (
-                <View style={[styles.w100, styles.flexRow, styles.gap2, isSmallScreenWidth && styles.mb3]}>
+                <View style={[styles.w100, styles.flexRow, styles.gap2, shouldUseNarrowLayout && styles.mb3]}>
                     {!hasAccountingConnections && !isMultiLevelTags && (
                         <Button
                             medium
@@ -186,18 +198,16 @@ function WorkspaceTagsPage({route}: WorkspaceTagsPageProps) {
                             onPress={navigateToCreateTagPage}
                             icon={Expensicons.Plus}
                             text={translate('workspace.tags.addTag')}
-                            style={[isSmallScreenWidth && styles.flex1]}
+                            style={[shouldUseNarrowLayout && styles.flex1]}
                         />
                     )}
-                    {policyTags && (
-                        <Button
-                            medium
-                            onPress={navigateToTagsSettings}
-                            icon={Expensicons.Gear}
-                            text={translate('common.settings')}
-                            style={[isSmallScreenWidth && styles.flex1]}
-                        />
-                    )}
+                    <Button
+                        medium
+                        onPress={navigateToTagsSettings}
+                        icon={Expensicons.Gear}
+                        text={translate('common.settings')}
+                        style={[shouldUseNarrowLayout && styles.flex1]}
+                    />
                 </View>
             );
         }
@@ -266,7 +276,7 @@ function WorkspaceTagsPage({route}: WorkspaceTagsPageProps) {
                 buttonSize={CONST.DROPDOWN_BUTTON_SIZE.MEDIUM}
                 customText={translate('workspace.common.selected', {selectedNumber: selectedTagsArray.length})}
                 options={options}
-                style={[isSmallScreenWidth && styles.flexGrow1, isSmallScreenWidth && styles.mb3]}
+                style={[shouldUseNarrowLayout && styles.flexGrow1, shouldUseNarrowLayout && styles.mb3]}
             />
         );
     };
@@ -308,11 +318,11 @@ function WorkspaceTagsPage({route}: WorkspaceTagsPageProps) {
                 <HeaderWithBackButton
                     icon={Illustrations.Tag}
                     title={translate('workspace.common.tags')}
-                    shouldShowBackButton={isSmallScreenWidth}
+                    shouldShowBackButton={shouldUseNarrowLayout}
                 >
-                    {!isSmallScreenWidth && getHeaderButtons()}
+                    {!shouldUseNarrowLayout && getHeaderButtons()}
                 </HeaderWithBackButton>
-                {isSmallScreenWidth && <View style={[styles.pl5, styles.pr5]}>{getHeaderButtons()}</View>}
+                {shouldUseNarrowLayout && <View style={[styles.pl5, styles.pr5]}>{getHeaderButtons()}</View>}
                 <ConfirmModal
                     isVisible={isDeleteTagsConfirmModalVisible}
                     onConfirm={deleteTags}
@@ -323,7 +333,7 @@ function WorkspaceTagsPage({route}: WorkspaceTagsPageProps) {
                     cancelText={translate('common.cancel')}
                     danger
                 />
-                {(!isSmallScreenWidth || tagList.length === 0 || isLoading) && getHeaderText()}
+                {(!shouldUseNarrowLayout || tagList.length === 0 || isLoading) && getHeaderText()}
                 {isLoading && (
                     <ActivityIndicator
                         size={CONST.ACTIVITY_INDICATOR_SIZE.LARGE}
@@ -332,9 +342,13 @@ function WorkspaceTagsPage({route}: WorkspaceTagsPageProps) {
                     />
                 )}
                 {!hasVisibleTag && !isLoading && (
-                    <WorkspaceEmptyStateSection
+                    <EmptyStateComponent
+                        SkeletonComponent={TableListItemSkeleton}
+                        headerMediaType={CONST.EMPTY_STATE_MEDIA.ILLUSTRATION}
+                        headerMedia={Illustrations.EmptyState}
+                        headerStyles={styles.emptyFolderBG}
+                        headerContentStyles={styles.emptyStateFolderIconSize}
                         title={translate('workspace.tags.emptyTags.title')}
-                        icon={Illustrations.EmptyStateExpenses}
                         subtitle={translate('workspace.tags.emptyTags.subtitle')}
                     />
                 )}
@@ -351,7 +365,7 @@ function WorkspaceTagsPage({route}: WorkspaceTagsPageProps) {
                         shouldPreventDefaultFocusOnSelectRow={!DeviceCapabilities.canUseTouchScreen()}
                         listHeaderWrapperStyle={[styles.ph9, styles.pv3, styles.pb5]}
                         onDismissError={(item) => !isMultiLevelTags && Tag.clearPolicyTagErrors(policyID, item.value, 0)}
-                        listHeaderContent={isSmallScreenWidth ? getHeaderText() : null}
+                        listHeaderContent={shouldUseNarrowLayout ? getHeaderText() : null}
                         showScrollIndicator={false}
                     />
                 )}

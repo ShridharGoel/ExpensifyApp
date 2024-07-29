@@ -17,9 +17,9 @@ import TableListItem from '@components/SelectionList/TableListItem';
 import Text from '@components/Text';
 import useLocalize from '@hooks/useLocalize';
 import useNetwork from '@hooks/useNetwork';
+import useResponsiveLayout from '@hooks/useResponsiveLayout';
 import useTheme from '@hooks/useTheme';
 import useThemeStyles from '@hooks/useThemeStyles';
-import useWindowDimensions from '@hooks/useWindowDimensions';
 import * as DeviceCapabilities from '@libs/DeviceCapabilities';
 import localeCompare from '@libs/LocaleCompare';
 import Navigation from '@libs/Navigation/Navigation';
@@ -39,7 +39,7 @@ import type {TagListItem} from './types';
 type WorkspaceViewTagsProps = StackScreenProps<SettingsNavigatorParamList, typeof SCREENS.WORKSPACE.TAG_LIST_VIEW>;
 
 function WorkspaceViewTagsPage({route}: WorkspaceViewTagsProps) {
-    const {isSmallScreenWidth} = useWindowDimensions();
+    const {shouldUseNarrowLayout} = useResponsiveLayout();
     const styles = useThemeStyles();
     const theme = useTheme();
     const {translate} = useLocalize();
@@ -204,7 +204,7 @@ function WorkspaceViewTagsPage({route}: WorkspaceViewTagsProps) {
                 buttonSize={CONST.DROPDOWN_BUTTON_SIZE.MEDIUM}
                 customText={translate('workspace.common.selected', {selectedNumber: selectedTagsArray.length})}
                 options={options}
-                style={[isSmallScreenWidth && styles.flexGrow1, isSmallScreenWidth && styles.mb3]}
+                style={[shouldUseNarrowLayout && styles.flexGrow1, shouldUseNarrowLayout && styles.mb3]}
             />
         );
     };
@@ -224,8 +224,8 @@ function WorkspaceViewTagsPage({route}: WorkspaceViewTagsProps) {
                 shouldEnableMaxHeight
                 testID={WorkspaceViewTagsPage.displayName}
             >
-                <HeaderWithBackButton title={currentTagListName}>{!isSmallScreenWidth && getHeaderButtons()}</HeaderWithBackButton>
-                {isSmallScreenWidth && <View style={[styles.pl5, styles.pr5]}>{getHeaderButtons()}</View>}
+                <HeaderWithBackButton title={currentTagListName}>{!shouldUseNarrowLayout && getHeaderButtons()}</HeaderWithBackButton>
+                {shouldUseNarrowLayout && <View style={[styles.pl5, styles.pr5]}>{getHeaderButtons()}</View>}
                 <ConfirmModal
                     isVisible={isDeleteTagsConfirmModalVisible}
                     onConfirm={deleteTags}
@@ -245,14 +245,16 @@ function WorkspaceViewTagsPage({route}: WorkspaceViewTagsProps) {
                             onToggle={(on) => Tag.setPolicyTagsRequired(policyID, on, route.params.orderWeight)}
                             pendingAction={currentPolicyTag.pendingFields?.required}
                             errors={currentPolicyTag?.errorFields?.required ?? undefined}
-                            onCloseError={() => Tag.clearPolicyTagListError(policyID, route.params.orderWeight, 'required')}
+                            onCloseError={() => Tag.clearPolicyTagListErrorField(policyID, route.params.orderWeight, 'required')}
                             disabled={!currentPolicyTag?.required && !Object.values(currentPolicyTag?.tags ?? {}).some((tag) => tag.enabled)}
                         />
                     </View>
                 )}
                 <OfflineWithFeedback
                     errors={currentPolicyTag.errors}
+                    onClose={() => Tag.clearPolicyTagListErrors(policyID, currentPolicyTag.orderWeight)}
                     pendingAction={currentPolicyTag.pendingAction}
+                    errorRowStyles={styles.mh5}
                 >
                     <MenuItemWithTopDescription
                         title={PolicyUtils.getCleanedTagName(currentPolicyTag.name)}
