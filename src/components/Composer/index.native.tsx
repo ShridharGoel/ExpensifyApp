@@ -40,6 +40,7 @@ function Composer(
     const textInput = useRef<AnimatedMarkdownTextInputRef | null>(null);
     const {isFocused, shouldResetFocusRef} = useResetComposerFocus(textInput);
     const doesTextContainOnlyEmojis = useMemo(() => EmojiUtils.containsOnlyEmojis(value ?? ''), [value]);
+    const containsTextWithEmojis = useMemo(() => EmojiUtils.containsTextWithEmojis(value ?? ''), [value]);
     const theme = useTheme();
     const markdownStyle = useMarkdownStyle(doesTextContainOnlyEmojis, !isGroupPolicyReport ? excludeReportMentionStyle : excludeNoStyles);
     const styles = useThemeStyles();
@@ -74,8 +75,8 @@ function Composer(
 
     const maxHeightStyle = useMemo(() => StyleUtils.getComposerMaxHeightStyle(maxLines, isComposerFullSize), [StyleUtils, isComposerFullSize, maxLines]);
     const composerStyle = useMemo(
-        () => StyleSheet.flatten([style, doesTextContainOnlyEmojis ? styles.onlyEmojisTextLineHeight : styles.emojisWithTextLineHeight]),
-        [style, doesTextContainOnlyEmojis, styles],
+        () => StyleSheet.flatten([style, doesTextContainOnlyEmojis ? styles.onlyEmojisTextLineHeight : (containsTextWithEmojis ? styles.emojisWithTextLineHeight : styles.lineHeightMarkdownEnabledInput)]),
+        [style, doesTextContainOnlyEmojis, styles, containsTextWithEmojis],
     );
 
     return (

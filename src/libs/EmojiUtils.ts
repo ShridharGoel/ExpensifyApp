@@ -190,6 +190,35 @@ function containsOnlyEmojis(message: string): boolean {
     return codes.length === messageCodes.length;
 }
 
+function containsTextWithEmojis(message: string): boolean {
+    const trimmedMessage = message.replace(/\s+/g, '');
+    const emojisRegex = new RegExp(CONST.REGEX.EMOJIS, CONST.REGEX.EMOJIS.flags.concat('g'));
+
+    const emojiMatches = trimmedMessage.match(emojisRegex);
+
+    if (!emojiMatches) {
+        return false;
+    }
+
+    const emojiCodes = [];
+    emojiMatches.forEach((emoji) => {
+        getEmojiUnicode(emoji).split(' ').forEach((code) => {
+            if (!(CONST.INVISIBLE_CODEPOINTS as readonly string[]).includes(code)) {
+                emojiCodes.push(code);
+            }
+        });
+    });
+
+    const messageChars = [...trimmedMessage];
+
+    const containsText = messageChars.some((char) => {
+        const unicode = getEmojiUnicode(char);
+        return !emojiCodes.includes(unicode) && unicode.length > 0 && !(CONST.INVISIBLE_CODEPOINTS as readonly string[]).includes(unicode);
+    });
+
+    return containsText;
+}
+
 /**
  * Get the header emojis with their code, icon and index
  */
@@ -649,6 +678,7 @@ export {
     getHeaderEmojis,
     mergeEmojisWithFrequentlyUsedEmojis,
     containsOnlyEmojis,
+    containsTextWithEmojis,
     replaceEmojis,
     suggestEmojis,
     trimEmojiUnicode,
