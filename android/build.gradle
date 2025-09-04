@@ -86,6 +86,11 @@ allprojects {
                 // MAPBOX_DOWNLOADS_TOKEN=YOUR_SECRET_TOKEN_HERE
                 password = project.properties['MAPBOX_DOWNLOADS_TOKEN'] ?: ""
             }
+
+            tasks.withType(JavaCompile) {
+    options.compilerArgs += ['-Xlint:-options']
+}
+
         }
     }
 }

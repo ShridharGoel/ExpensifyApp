@@ -264,6 +264,10 @@ type SearchDateModifier = ValueOf<typeof CONST.SEARCH.DATE_MODIFIERS>;
 
 type SearchDateModifierLower = Lowercase<SearchDateModifier>;
 
+type SearchAmountModifier = ValueOf<typeof CONST.SEARCH.AMOUNT_MODIFIERS>;
+
+type SearchAmountModifierLower = Lowercase<SearchAmountModifier>;
+
 type ArchivedReportsIDSet = ReadonlySet<string>;
 
 /**
@@ -2251,4 +2255,4 @@ export {
     getWithdrawalTypeOptions,
     getColumnsToShow,
 };
-export type {SavedSearchMenuItem, SearchTypeMenuSection, SearchTypeMenuItem, SearchDateModifier, SearchDateModifierLower, SearchKey, ArchivedReportsIDSet};
+export type {SavedSearchMenuItem, SearchTypeMenuSection, SearchTypeMenuItem, SearchDateModifier, SearchDateModifierLower, SearchAmountModifier, SearchAmountModifierLower, SearchKey, ArchivedReportsIDSet};

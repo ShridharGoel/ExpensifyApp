@@ -6622,6 +6622,7 @@ const CONST = {
             BEFORE: 'Before',
         },
         AMOUNT_MODIFIERS: {
+            EQUAL_TO: 'EqualTo',
             LESS_THAN: 'LessThan',
             GREATER_THAN: 'GreaterThan',
         },

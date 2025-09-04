@@ -1,10 +1,10 @@
 import React from 'react';
-import SearchFiltersPurchaseAmountBase from '@components/Search/SearchFiltersAmountBase';
+import SearchFiltersAmountBase from '@components/Search/SearchFiltersAmountBase';
 import CONST from '@src/CONST';
 
 function SearchFiltersPurchaseAmountPage() {
     return (
-        <SearchFiltersPurchaseAmountBase
+        <SearchFiltersAmountBase
             filterKey={CONST.SEARCH.SYNTAX_FILTER_KEYS.PURCHASE_AMOUNT}
             title="common.purchaseAmount"
             testID={SearchFiltersPurchaseAmountPage.displayName}
