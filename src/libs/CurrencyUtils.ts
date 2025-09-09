@@ -114,7 +114,7 @@ function convertToDisplayString(amountInCents = 0, currency: string = CONST.CURR
     if (!currency) {
         currencyWithFallback = CONST.CURRENCY.USD;
     }
-    return format(IntlStore.getCurrentLocale(), convertedAmount, {
+    const formatted = format(IntlStore.getCurrentLocale(), convertedAmount, {
         style: 'currency',
         currency: currencyWithFallback,
 
@@ -124,6 +124,8 @@ function convertToDisplayString(amountInCents = 0, currency: string = CONST.CURR
         // For currencies that have decimal places > 2, floor to 2 instead as we don't support more than 2 decimal places.
         maximumFractionDigits: 2,
     });
+    
+    return replaceCurrencySymbol(formatted, currencyWithFallback);
 }
 
 /**
@@ -136,7 +138,7 @@ function convertToDisplayString(amountInCents = 0, currency: string = CONST.CURR
 function convertToShortDisplayString(amountInCents = 0, currency: string = CONST.CURRENCY.USD): string {
     const convertedAmount = convertToFrontendAmountAsInteger(amountInCents, currency);
 
-    return format(IntlStore.getCurrentLocale(), convertedAmount, {
+    const formatted = format(IntlStore.getCurrentLocale(), convertedAmount, {
         style: 'currency',
         currency,
 
@@ -144,6 +146,26 @@ function convertToShortDisplayString(amountInCents = 0, currency: string = CONST
         minimumFractionDigits: 0,
         maximumFractionDigits: 0,
     });
+    
+    return replaceCurrencySymbol(formatted, currency);
+}
+
+/**
+ * Replaces the currency symbol in a formatted string with our preferred symbol from currency list
+ */
+function replaceCurrencySymbol(formattedString: string, currency: string): string {
+    const ourSymbol = getCurrencySymbol(currency);
+    if (!ourSymbol) {
+        return formattedString;
+    }
+    
+    // Get the Intl-generated symbol to replace
+    const intlSymbol = getLocalizedCurrencySymbol(currency);
+    if (intlSymbol && intlSymbol !== ourSymbol) {
+        return formattedString.replace(intlSymbol, ourSymbol);
+    }
+    
+    return formattedString;
 }
 
 /**
@@ -154,12 +176,14 @@ function convertToShortDisplayString(amountInCents = 0, currency: string = CONST
  */
 function convertAmountToDisplayString(amount = 0, currency: string = CONST.CURRENCY.USD): string {
     const convertedAmount = amount / 100.0;
-    return format(IntlStore.getCurrentLocale(), convertedAmount, {
+    const formatted = format(IntlStore.getCurrentLocale(), convertedAmount, {
         style: 'currency',
         currency,
         minimumFractionDigits: CONST.MIN_TAX_RATE_DECIMAL_PLACES,
         maximumFractionDigits: CONST.MAX_TAX_RATE_DECIMAL_PLACES,
     });
+    
+    return replaceCurrencySymbol(formatted, currency);
 }
 
 /**

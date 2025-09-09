@@ -145,8 +145,8 @@ describe('CurrencyUtils', () => {
             ['JPY', 2500, '¥25'],
             ['JPY', 250000, '¥2,500'],
             ['JPY', 2500.5, '¥25'],
-            ['RSD', 100, 'RSD\xa01.00'],
-            ['RSD', 145, 'RSD\xa01.45'],
+            ['RSD', 100, 'РСД\xa01.00'],
+            ['RSD', 145, 'РСД\xa01.45'],
             ['BHD', 12345, 'BHD\xa0123.45'],
             ['BHD', 1, 'BHD\xa00.01'],
         ])('Correctly displays %s', (currency, amount, expectedResult) => {
@@ -172,8 +172,8 @@ describe('CurrencyUtils', () => {
             ['JPY', 2500, '¥25'],
             ['JPY', 250000, '¥2,500'],
             ['JPY', 2500.5, '¥25'],
-            ['RSD', 100, 'RSD\xa01'],
-            ['RSD', 145, 'RSD\xa01'],
+            ['RSD', 100, 'РСД\xa01'],
+            ['RSD', 145, 'РСД\xa01'],
             ['BHD', 12345, 'BHD\xa0123'],
             ['BHD', 1, 'BHD\xa00'],
         ])('Correctly displays %s', (currency, amount, expectedResult) => {
