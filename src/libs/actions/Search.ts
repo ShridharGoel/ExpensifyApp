@@ -240,7 +240,7 @@ function getOnyxLoadingData(
             value: {
                 ...(isOffline ? {} : {data: []}),
                 search: {
-                    status: queryJSON?.status,
+                    status: Array.isArray(queryJSON?.status) ? queryJSON?.status.join(',') : queryJSON?.status,
                     type: queryJSON?.type,
                     isLoading: false,
                 },

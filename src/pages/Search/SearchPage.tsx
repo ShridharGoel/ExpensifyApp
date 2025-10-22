@@ -149,6 +149,7 @@ function SearchPage({route}: SearchPageProps) {
     }, [lastSearchType, queryJSON, setLastSearchType, currentSearchResults]);
 
     const {status, hash} = queryJSON ?? {};
+    const statusValue = Array.isArray(status) ? status.join(',') : status;
     const selectedTransactionsKeys = Object.keys(selectedTransactions ?? {});
 
     const beginExportWithTemplate = useCallback(
@@ -260,7 +261,7 @@ function SearchPage({route}: SearchPageProps) {
     );
 
     const headerButtonsOptions = useMemo(() => {
-        if (selectedTransactionsKeys.length === 0 || status == null || !hash) {
+        if (selectedTransactionsKeys.length === 0 || statusValue == null || !hash) {
             return CONST.EMPTY_ARRAY as unknown as Array<DropdownOption<SearchHeaderOptionValue>>;
         }
 
@@ -287,7 +288,7 @@ function SearchPage({route}: SearchPageProps) {
 
                         exportSearchItemsToCSV(
                             {
-                                query: status,
+                                query: statusValue,
                                 jsonQuery: JSON.stringify(queryJSON),
                                 reportIDList: selectedReports?.filter((report) => !!report).map((report) => report.reportID) ?? [],
                                 transactionIDList: selectedTransactionsKeys,
@@ -509,6 +510,7 @@ function SearchPage({route}: SearchPageProps) {
     }, [
         selectedTransactionsKeys,
         status,
+        statusValue,
         hash,
         selectedTransactions,
         translate,
@@ -621,21 +623,21 @@ function SearchPage({route}: SearchPageProps) {
     };
 
     const createExportAll = useCallback(() => {
-        if (selectedTransactionsKeys.length === 0 || status == null || !hash) {
+        if (selectedTransactionsKeys.length === 0 || statusValue == null || !hash) {
             return [];
         }
 
         setIsDownloadExportModalVisible(false);
         const reportIDList = selectedReports?.filter((report) => !!report).map((report) => report.reportID) ?? [];
         queueExportSearchItemsToCSV({
-            query: status,
+            query: statusValue,
             jsonQuery: JSON.stringify(queryJSON),
             reportIDList,
             transactionIDList: selectedTransactionsKeys,
         });
         selectAllMatchingItems(false);
         clearSelectedTransactions();
-    }, [selectedTransactionsKeys, status, hash, selectedReports, queryJSON, selectAllMatchingItems, clearSelectedTransactions]);
+    }, [selectedTransactionsKeys, statusValue, hash, selectedReports, queryJSON, selectAllMatchingItems, clearSelectedTransactions]);
 
     const handleOnBackButtonPress = () => Navigation.goBack(ROUTES.SEARCH_ROOT.getRoute({query: buildCannedSearchQuery()}));
     const {resetVideoPlayerData} = usePlaybackContext();

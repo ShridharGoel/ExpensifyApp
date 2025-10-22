@@ -10,6 +10,10 @@ import type {
     SearchDateFilterKeys,
     SearchDatePreset,
     SearchFilterKey,
+    SearchParserToken,
+    SearchParserFilterToken,
+    SearchParserDefaultToken,
+    SearchQueryAST,
     SearchQueryJSON,
     SearchQueryString,
     SearchStatus,
@@ -203,7 +207,7 @@ function buildFilterValuesString(filterName: string, queryFilters: QueryFilter[]
  * @private
  * Traverses the AST and returns filters as a QueryFilters object.
  */
-function getFilters(queryJSON: SearchQueryJSON) {
+function getFilters(queryJSON: SearchQueryAST) {
     const filters = [] as QueryFilters;
     const filterKeys = Object.values(CONST.SEARCH.SYNTAX_FILTER_KEYS);
 
@@ -390,6 +394,114 @@ function normalizeValue<T>(value: T | T[]): T {
     return value;
 }
 
+type SearchParserDefaults = {
+    type: SearchDataTypes | SearchDataTypes[];
+    status: SearchStatus;
+    sortBy: SearchQueryJSON['sortBy'] | SearchQueryJSON['sortBy'][];
+    sortOrder: SearchQueryJSON['sortOrder'] | SearchQueryJSON['sortOrder'][];
+    groupBy?: SearchQueryJSON['groupBy'] | SearchQueryJSON['groupBy'][];
+    policyID?: string | string[];
+};
+
+type RawSearchParserResult = {
+    defaults: SearchParserDefaults;
+    tokens: SearchParserToken[];
+};
+
+const KEYWORD_QUOTE_REGEX = /^(['"])(.*)\1$/;
+
+function stripKeywordQuotes(value: string) {
+    const match = KEYWORD_QUOTE_REGEX.exec(value);
+    if (!match) {
+        return value;
+    }
+
+    return match[2];
+}
+
+function toArray<T>(value: T | T[]): T[] {
+    return Array.isArray(value) ? value : [value];
+}
+
+function buildFilterNode(
+    operator: ValueOf<typeof CONST.SEARCH.SYNTAX_OPERATORS>,
+    left: ValueOf<typeof CONST.SEARCH.SYNTAX_FILTER_KEYS> | ASTNode,
+    right: string | string[] | ASTNode,
+): ASTNode {
+    return {operator, left, right};
+}
+
+function isFilterToken(token: SearchParserToken): token is SearchParserFilterToken {
+    return token.kind === 'filter';
+}
+
+function buildFiltersFromTokens(tokens: SearchParserFilterToken[]): ASTNode | undefined {
+    const keywordAccumulator: string[] = [];
+    const orderedFilters: ASTNode[] = [];
+
+    const flushKeywords = () => {
+        if (!keywordAccumulator.length) {
+            return;
+        }
+
+        const keywordNode = buildFilterNode(
+            CONST.SEARCH.SYNTAX_OPERATORS.EQUAL_TO,
+            CONST.SEARCH.SYNTAX_FILTER_KEYS.KEYWORD,
+            [...keywordAccumulator],
+        );
+        orderedFilters.push(keywordNode);
+        keywordAccumulator.length = 0;
+    };
+
+    tokens.forEach((token) => {
+        if (token.key === CONST.SEARCH.SYNTAX_FILTER_KEYS.KEYWORD) {
+            const values = toArray(token.value)
+                .map((keyword) => stripKeywordQuotes(keyword))
+                .filter((keyword) => keyword.length > 0);
+            keywordAccumulator.push(...values);
+            return;
+        }
+
+        flushKeywords();
+        orderedFilters.push(token.node);
+    });
+
+    flushKeywords();
+
+    if (!orderedFilters.length) {
+        return undefined;
+    }
+
+    let current: ASTNode | undefined;
+    orderedFilters.forEach((node) => {
+        current = current ? buildFilterNode(CONST.SEARCH.SYNTAX_OPERATORS.AND, current, node) : node;
+    });
+
+    return current;
+}
+
+function composeSearchQuery(parseResult: RawSearchParserResult): SearchQueryAST {
+    const filterTokens = parseResult.tokens.filter(isFilterToken);
+    const filters = buildFiltersFromTokens(filterTokens);
+    const defaults = parseResult.defaults;
+    const type = Array.isArray(defaults.type) ? defaults.type.at(0) ?? CONST.SEARCH.DATA_TYPES.EXPENSE : defaults.type;
+    const sortBy = Array.isArray(defaults.sortBy) ? defaults.sortBy.at(0) ?? CONST.SEARCH.TABLE_COLUMNS.DATE : defaults.sortBy;
+    const sortOrder = Array.isArray(defaults.sortOrder) ? defaults.sortOrder.at(0) ?? CONST.SEARCH.SORT_ORDER.DESC : defaults.sortOrder;
+    const groupBy = Array.isArray(defaults.groupBy) ? defaults.groupBy.at(0) : defaults.groupBy;
+    const policyID = defaults.policyID ? (Array.isArray(defaults.policyID) ? defaults.policyID : [defaults.policyID]) : undefined;
+
+    return {
+        type,
+        status: defaults.status,
+        sortBy,
+        sortOrder,
+        groupBy,
+        policyID,
+        filters,
+        tokens: parseResult.tokens,
+    };
+}
+
 /**
  * Parses a given search query string into a structured `SearchQueryJSON` format.
  * This format of query is most commonly shared between components and also sent to backend to retrieve search results.
@@ -398,21 +510,22 @@ function normalizeValue<T>(value: T | T[]): T {
  */
 function buildSearchQueryJSON(query: SearchQueryString) {
     try {
-        const result = parseSearchQuery(query) as SearchQueryJSON;
-        const flatFilters = getFilters(result);
+        const parseResult = parseSearchQuery(query) as RawSearchParserResult;
+        const baseResult = composeSearchQuery(parseResult);
+        const flatFilters = getFilters(baseResult);
+        const result: SearchQueryJSON = {
+            ...baseResult,
+            inputQuery: query,
+            hash: 0,
+            recentSearchHash: 0,
+            similarSearchHash: 0,
+            flatFilters,
+        };
 
-        // Add the full input and hash to the results
-        result.inputQuery = query;
-        result.flatFilters = flatFilters;
         const {primaryHash, recentSearchHash, similarSearchHash} = getQueryHashes(result);
         result.hash = primaryHash;
         result.recentSearchHash = recentSearchHash;
         result.similarSearchHash = similarSearchHash;
-
-        if (result.policyID && typeof result.policyID === 'string') {
-            // Ensure policyID is always an array for consistency
-            result.policyID = [result.policyID];
-        }
 
         if (result.groupBy) {
             result.groupBy = normalizeValue(result.groupBy);
@@ -810,10 +923,11 @@ function buildFilterFormValuesFromQuery(
 
     if (typeKey) {
         if (Array.isArray(queryJSON.status)) {
-            const validStatuses = queryJSON.status.filter((status) => Object.values(CONST.SEARCH.STATUS[typeKey as keyof typeof CONST.SEARCH.DATA_TYPES]).includes(status));
+            const singularStatuses = Object.values(CONST.SEARCH.STATUS[typeKey as keyof typeof CONST.SEARCH.DATA_TYPES]) as string[];
+            const validStatuses = queryJSON.status.filter((status) => singularStatuses.includes(status));
 
             if (validStatuses.length) {
-                filtersForm[FILTER_KEYS.STATUS] = queryJSON.status.join(',');
+                filtersForm[FILTER_KEYS.STATUS] = validStatuses.join(',');
             } else {
                 filtersForm[FILTER_KEYS.STATUS] = CONST.SEARCH.STATUS.EXPENSE.ALL;
             }
@@ -901,20 +1015,29 @@ function buildUserReadableQueryString(
     policies: OnyxCollection<OnyxTypes.Policy>,
     currentUserAccountID: number,
 ) {
-    const {type, status, groupBy, policyID} = queryJSON;
+    const {type, status, groupBy, policyID, tokens} = queryJSON;
     const filters = queryJSON.flatFilters;
+    const defaultSegments: Partial<Record<SearchParserDefaultToken['key'], string>> = {};
+    defaultSegments.type = `${getUserFriendlyKey(CONST.SEARCH.SYNTAX_ROOT_KEYS.TYPE)}:${getUserFriendlyValue(type)}`;
 
-    let title = status
-        ? `type:${getUserFriendlyValue(type)} status:${Array.isArray(status) ? status.map(getUserFriendlyValue).join(',') : getUserFriendlyValue(status)}`
-        : `type:${getUserFriendlyValue(type)}`;
+    const statusValues = Array.isArray(status) ? status : status ? [status] : [];
+    if (statusValues.length > 0) {
+        defaultSegments.status = `${getUserFriendlyKey(CONST.SEARCH.SYNTAX_ROOT_KEYS.STATUS)}:${statusValues
+            .map((value) => getUserFriendlyValue(value))
+            .join(',')}`;
+    }
 
     if (groupBy) {
-        title += ` group-by:${getUserFriendlyValue(groupBy)}`;
+        defaultSegments.groupBy = `${getUserFriendlyKey(CONST.SEARCH.SYNTAX_ROOT_KEYS.GROUP_BY)}:${getUserFriendlyValue(groupBy)}`;
     }
 
     if (policyID && policyID.length > 0) {
-        title += ` workspace:${policyID.map((id) => sanitizeSearchValue(policies?.[`${ONYXKEYS.COLLECTION.POLICY}${id}`]?.name ?? id)).join(',')}`;
+        defaultSegments.policyID = `${getUserFriendlyKey(CONST.SEARCH.SYNTAX_FILTER_KEYS.POLICY_ID)}:${policyID
+            .map((id) => sanitizeSearchValue(policies?.[`${ONYXKEYS.COLLECTION.POLICY}${id}`]?.name ?? id))
+            .join(',')}`;
     }
+
+    const filterSegments = new Map<SearchFilterKey, string[]>();
 
     for (const filterObject of filters) {
         const key = filterObject.key;
@@ -977,10 +1100,95 @@ function buildUserReadableQueryString(
                 value: getFilterDisplayValue(key, getUserFriendlyValue(filter.value.toString()), PersonalDetails, reports, cardList, cardFeeds, policies, currentUserAccountID),
             }));
         }
-        title += buildFilterValuesString(getUserFriendlyKey(key), displayQueryFilters);
+        const segment = buildFilterValuesString(getUserFriendlyKey(key), displayQueryFilters).trim();
+        if (segment.length === 0) {
+            continue;
+        }
+        const existingSegments = filterSegments.get(key) ?? [];
+        existingSegments.push(segment);
+        filterSegments.set(key, existingSegments);
     }
 
-    return title;
+    const orderedSegments: string[] = [];
+    const defaultUsed = new Set<SearchParserDefaultToken['key']>();
+    const filterSegmentIndex = new Map<SearchFilterKey, number>();
+
+    if (tokens?.length) {
+        tokens.forEach((token) => {
+            if (token.kind === 'default') {
+                if (token.key === 'sortBy' || token.key === 'sortOrder') {
+                    return;
+                }
+                if (defaultUsed.has(token.key)) {
+                    return;
+                }
+                const segment = defaultSegments[token.key];
+                if (segment) {
+                    orderedSegments.push(segment);
+                    defaultUsed.add(token.key);
+                }
+                return;
+            }
+
+            const segments = filterSegments.get(token.key);
+            if (!segments || segments.length === 0) {
+                return;
+            }
+            const currentIndex = filterSegmentIndex.get(token.key) ?? 0;
+            if (currentIndex >= segments.length) {
+                return;
+            }
+            orderedSegments.push(segments[currentIndex]);
+            filterSegmentIndex.set(token.key, currentIndex + 1);
+        });
+    }
+
+    (['type', 'status', 'groupBy', 'policyID'] as Array<SearchParserDefaultToken['key']>).forEach((key) => {
+        const segment = defaultSegments[key];
+        if (!segment || defaultUsed.has(key)) {
+            return;
+        }
+        orderedSegments.push(segment);
+        defaultUsed.add(key);
+    });
+
+    for (const filterObject of filters) {
+        const segments = filterSegments.get(filterObject.key);
+        if (!segments || segments.length === 0) {
+            continue;
+        }
+        const currentIndex = filterSegmentIndex.get(filterObject.key) ?? 0;
+        if (currentIndex >= segments.length) {
+            continue;
+        }
+        orderedSegments.push(...segments.slice(currentIndex));
+        filterSegmentIndex.set(filterObject.key, segments.length);
+    }
+
+    if (orderedSegments.length > 0) {
+        return orderedSegments.join(' ').trim();
+    }
+
+    // Fallback to legacy ordering if no segments were generated (e.g. tokens missing)
+    let fallbackTitle = defaultSegments.type ?? `type:${getUserFriendlyValue(type)}`;
+    if (defaultSegments.status) {
+        fallbackTitle += ` ${defaultSegments.status}`;
+    }
+    if (defaultSegments.groupBy) {
+        fallbackTitle += ` ${defaultSegments.groupBy}`;
+    }
+    if (defaultSegments.policyID) {
+        fallbackTitle += ` ${defaultSegments.policyID}`;
+    }
+    for (const filterObject of filters) {
+        const segments = filterSegments.get(filterObject.key);
+        if (!segments || segments.length === 0) {
+            continue;
+        }
+        fallbackTitle += ` ${segments.join(' ')}`;
+    }
+
+    return fallbackTitle.trim();
 }
 
 /**

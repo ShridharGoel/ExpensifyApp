@@ -40,10 +40,10 @@
     "type", "keyword", "groupCurrency", "groupBy"
   ]);
 
-  function applyDefaults(filters) {
+  function applyDefaults(tokens = []) {
     return {
-      ...defaultValues,
-      filters,
+      defaults: { ...defaultValues },
+      tokens,
     };
   }
 
@@ -56,46 +56,29 @@
   }
 }
 
-query = _ filters:filterList? _ { return applyDefaults(filters); }
+query = _ filters:filterList? _ { return applyDefaults(filters ?? []); }
 
 filterList
   = head:filter tail:(logicalAnd filter)* {
-      const allFilters = [head, ...tail.map(([_, filter]) => filter)]
-        .filter(Boolean)
-        .filter((filter) => filter.right);
-      if (!allFilters.length) {
-        return null;
-      }
-
-      const keywords = allFilters.filter(
-        (filter) =>
-          filter.left === "keyword" || filter.right?.left === "keyword"
-      );
-      const nonKeywords = allFilters.filter(
-        (filter) =>
-          filter.left !== "keyword" && filter.right?.left !== "keyword"
-      );
-
-      const keywordFilter = buildFilter(
-        "eq",
-        "keyword",
-        keywords
-          .map((filter) => filter.right.replace(/^(['"])(.*)\1$/, "$2"))
-          .flat()
-      );
-      if (keywordFilter.right.length > 0) {
-        nonKeywords.push(keywordFilter);
-      }
-      return nonKeywords.reduce((result, filter) =>
-        buildFilter("and", result, filter)
-      );
+      const filters = [head, ...tail.map(([_, filter]) => filter)].filter(Boolean);
+      return filters;
     }
 
 filter = @(standardFilter / defaultFilter / freeTextFilter)
 
 defaultFilter
   = _ key:defaultKey _ op:operator _ value:identifier {
+      const raw = text();
+      const loc = location();
       updateDefaultValues(key, value);
+      return {
+        kind: "default",
+        key,
+        operator: op,
+        value,
+        raw,
+        location: loc,
+      };
     }
 
 freeTextFilter
@@ -107,7 +90,18 @@ freeTextFilter
       } else {
         word = value;
       }
-      return buildFilter("eq", "keyword", word);
+      const raw = text();
+      const loc = location();
+      const node = buildFilter("eq", "keyword", word);
+      return {
+        kind: "filter",
+        key: "keyword",
+        operator: "eq",
+        value: word,
+        node,
+        raw,
+        location: loc,
+      };
     }
 
 standardFilter
@@ -123,8 +117,18 @@ standardFilter
           operator = "neq";
         }
       }
-
-      return buildFilter(operator, key, values);
+      const raw = text();
+      const loc = location();
+      const node = buildFilter(operator, key, values);
+      return {
+        kind: "filter",
+        key,
+        operator,
+        value: values,
+        node,
+        raw,
+        location: loc,
+      };
     }
 
 key "key"

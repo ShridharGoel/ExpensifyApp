@@ -368,40 +368,23 @@ function peg$parse(input, options) {
   var peg$e92 = peg$anyExpectation();
   var peg$e93 = peg$classExpectation([","], false, false);
 
-  var peg$f0 = function(filters) { return applyDefaults(filters); };
+  var peg$f0 = function(filters) { return applyDefaults(filters ?? []); };
   var peg$f1 = function(head, tail) {
-      const allFilters = [head, ...tail.map(([_, filter]) => filter)]
-        .filter(Boolean)
-        .filter((filter) => filter.right);
-      if (!allFilters.length) {
-        return null;
-      }
-
-      const keywords = allFilters.filter(
-        (filter) =>
-          filter.left === "keyword" || filter.right?.left === "keyword"
-      );
-      const nonKeywords = allFilters.filter(
-        (filter) =>
-          filter.left !== "keyword" && filter.right?.left !== "keyword"
-      );
-
-      const keywordFilter = buildFilter(
-        "eq",
-        "keyword",
-        keywords
-          .map((filter) => filter.right.replace(/^(['"])(.*)\1$/, "$2"))
-          .flat()
-      );
-      if (keywordFilter.right.length > 0) {
-        nonKeywords.push(keywordFilter);
-      }
-      return nonKeywords.reduce((result, filter) =>
-        buildFilter("and", result, filter)
-      );
+      const filters = [head, ...tail.map(([_, filter]) => filter)].filter(Boolean);
+      return filters;
     };
   var peg$f2 = function(key, op, value) {
+      const raw = text();
+      const loc = location();
       updateDefaultValues(key, value);
+      return {
+        kind: "default",
+        key,
+        operator: op,
+        value,
+        raw,
+        location: loc,
+      };
     };
   var peg$f3 = function(value) {
       //handle no-breaking space
@@ -411,7 +394,18 @@ function peg$parse(input, options) {
       } else {
         word = value;
       }
-      return buildFilter("eq", "keyword", word);
+      const raw = text();
+      const loc = location();
+      const node = buildFilter("eq", "keyword", word);
+      return {
+        kind: "filter",
+        key: "keyword",
+        operator: "eq",
+        value: word,
+        node,
+        raw,
+        location: loc,
+      };
     };
   var peg$f4 = function(neg, field, op, values) {
       expectingNestedQuote = false; nameOperator = false;
@@ -425,8 +419,18 @@ function peg$parse(input, options) {
           operator = "neq";
         }
       }
-
-      return buildFilter(operator, key, values);
+      const raw = text();
+      const loc = location();
+      const node = buildFilter(operator, key, values);
+      return {
+        kind: "filter",
+        key,
+        operator,
+        value: values,
+        node,
+        raw,
+        location: loc,
+      };
     };
   var peg$f5 = function(k) {
       nameOperator = (k === "from" || k === "to" || k === "payer" || k === "exporter" || k === "attendee" || k === "createdBy" || k === "assignee");
@@ -3076,10 +3080,10 @@ function peg$parse(input, options) {
     "type", "keyword", "groupCurrency", "groupBy"
   ]);
 
-  function applyDefaults(filters) {
+  function applyDefaults(tokens = []) {
     return {
-      ...defaultValues,
-      filters,
+      defaults: { ...defaultValues },
+      tokens,
     };
   }
 

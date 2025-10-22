@@ -140,6 +140,40 @@ type ASTNode = {
     right: string | ASTNode | string[];
 };
 
+type ParserLocation = {
+    start: {
+        offset: number;
+        line: number;
+        column: number;
+    };
+    end: {
+        offset: number;
+        line: number;
+        column: number;
+    };
+};
+
+type SearchParserFilterToken = {
+    kind: 'filter';
+    key: ValueOf<typeof CONST.SEARCH.SYNTAX_FILTER_KEYS>;
+    operator: ValueOf<typeof CONST.SEARCH.SYNTAX_OPERATORS>;
+    value: string | string[];
+    raw: string;
+    location: ParserLocation;
+    node: ASTNode;
+};
+
+type SearchParserDefaultToken = {
+    kind: 'default';
+    key: 'type' | 'status' | 'sortBy' | 'sortOrder' | 'policyID' | 'groupBy';
+    operator: ValueOf<typeof CONST.SEARCH.SYNTAX_OPERATORS>;
+    value: string | string[];
+    raw: string;
+    location: ParserLocation;
+};
+
+type SearchParserToken = SearchParserFilterToken | SearchParserDefaultToken;
+
 type QueryFilter = {
     operator: ValueOf<typeof CONST.SEARCH.SYNTAX_OPERATORS>;
     value: string | number;
@@ -193,8 +227,9 @@ type SearchQueryAST = {
     sortBy: SearchColumnType;
     sortOrder: SortOrder;
     groupBy?: SearchGroupBy;
-    filters: ASTNode;
+    filters?: ASTNode;
     policyID?: string[];
+    tokens: SearchParserToken[];
 };
 
 type SearchQueryJSON = {
@@ -272,4 +307,9 @@ export type {
     SelectedReports,
     SearchTextFilterKeys,
     BankAccountMenuItem,
+    ParserLocation,
+    SearchParserToken,
+    SearchParserFilterToken,
+    SearchParserDefaultToken,
+    SearchQueryAST,
 };
