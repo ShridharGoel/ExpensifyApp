@@ -5915,7 +5915,7 @@ function requestMoney(requestMoneyInformation: RequestMoneyInformation): {iouRep
     const parsedComment = getParsedComment(transactionParams.comment ?? '');
     transactionParams.comment = parsedComment;
     const {
-        amount,
+        amount: transactionAmount,
         currency,
         merchant,
         comment = '',
@@ -5936,6 +5936,7 @@ function requestMoney(requestMoneyInformation: RequestMoneyInformation): {iouRep
         isTestDrive,
         isLinkedTrackedExpenseReportArchived,
     } = transactionParams;
+    let amount = transactionAmount ?? 0;
 
     const testDriveCommentReportActionID = isTestDrive ? NumberUtils.rand64() : undefined;
 
@@ -5954,6 +5955,24 @@ function requestMoney(requestMoneyInformation: RequestMoneyInformation): {iouRep
         action === CONST.IOU.ACTION.SUBMIT
             ? allTransactionDrafts[`${ONYXKEYS.COLLECTION.TRANSACTION_DRAFT}${existingTransactionID}`]
             : allTransactions[`${ONYXKEYS.COLLECTION.TRANSACTION}${existingTransactionID}`];
+
+    if (
+        action === CONST.IOU.ACTION.SUBMIT &&
+        customUnitRateID &&
+        policyParams?.policy &&
+        existingTransaction &&
+        isManualDistanceRequestTransactionUtils(existingTransaction)
+    ) {
+        const selectedMileageRate = DistanceRequestUtils.getRateByCustomUnitRateID({customUnitRateID, policy: policyParams.policy});
+        const transactionDistanceUnit = existingTransaction.comment?.customUnit?.distanceUnit ?? selectedMileageRate?.unit;
+        if (selectedMileageRate?.rate && selectedMileageRate.unit && transactionDistanceUnit) {
+            const distanceInMeters = getDistanceInMeters(existingTransaction, transactionDistanceUnit);
+            if (distanceInMeters > 0) {
+                amount = DistanceRequestUtils.getDistanceRequestAmount(distanceInMeters, selectedMileageRate.unit, selectedMileageRate.rate);
+                transactionParams.amount = amount;
+            }
+        }
+    }
 
     const retryParams = {
         ...requestMoneyInformation,
