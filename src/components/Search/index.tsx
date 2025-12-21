@@ -3,6 +3,7 @@ import * as Sentry from '@sentry/react-native';
 import React, {useCallback, useContext, useEffect, useMemo, useRef, useState} from 'react';
 import type {NativeScrollEvent, NativeSyntheticEvent, StyleProp, ViewStyle} from 'react-native';
 import {View} from 'react-native';
+import Onyx from 'react-native-onyx';
 import type {OnyxEntry} from 'react-native-onyx';
 import Animated, {FadeIn, FadeOut, useAnimatedStyle, useSharedValue, withTiming} from 'react-native-reanimated';
 import FullPageErrorView from '@components/BlockingViews/FullPageErrorView';
@@ -68,7 +69,7 @@ import ROUTES from '@src/ROUTES';
 import SCREENS from '@src/SCREENS';
 import {columnsSelector} from '@src/selectors/AdvancedSearchFiltersForm';
 import {isActionLoadingSetSelector} from '@src/selectors/ReportMetaData';
-import type {OutstandingReportsByPolicyIDDerivedValue, Transaction} from '@src/types/onyx';
+import type {OutstandingReportsByPolicyIDDerivedValue, SearchTransactionHighlight, Transaction} from '@src/types/onyx';
 import type SearchResults from '@src/types/onyx/SearchResults';
 import type {SearchTransaction} from '@src/types/onyx/SearchResults';
 import type {TransactionViolation} from '@src/types/onyx/TransactionViolation';
@@ -287,6 +288,30 @@ function Search({
     const {accountID, email} = useCurrentUserPersonalDetails();
     const [isActionLoadingSet = new Set<string>()] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT_METADATA}`, {canBeMissing: true, selector: isActionLoadingSetSelector});
     const [visibleColumns] = useOnyx(ONYXKEYS.FORMS.SEARCH_ADVANCED_FILTERS_FORM, {canBeMissing: true, selector: columnsSelector});
+    const [searchHighlight] = useOnyx<SearchTransactionHighlight>(ONYXKEYS.SEARCH_TRANSACTION_HIGHLIGHT, {canBeMissing: true});
+
+    const manualHighlightTransactionIDs = useMemo(() => {
+        if (!searchHighlight?.transactionIDs?.length) {
+            return null;
+        }
+
+        if (searchHighlight.type && searchHighlight.type !== CONST.SEARCH.DATA_TYPES.EXPENSE) {
+            return null;
+        }
+
+        if (queryJSON?.type !== CONST.SEARCH.DATA_TYPES.EXPENSE) {
+            return null;
+        }
+
+        return new Set(searchHighlight.transactionIDs.map((transactionID) => `${ONYXKEYS.COLLECTION.TRANSACTION}${transactionID}`));
+    }, [queryJSON?.type, searchHighlight?.transactionIDs, searchHighlight?.type]);
+
+    useEffect(() => {
+        if (!manualHighlightTransactionIDs) {
+            return;
+        }
+        Onyx.set<SearchTransactionHighlight>(ONYXKEYS.SEARCH_TRANSACTION_HIGHLIGHT, null);
+    }, [manualHighlightTransactionIDs]);
 
     const isExpenseReportType = type === CONST.SEARCH.DATA_TYPES.EXPENSE_REPORT;
 
@@ -423,6 +448,7 @@ function Search({
         shouldCalculateTotals,
         reportActions,
         previousReportActions,
+        manualHighlightTransactionIDs,
     });
 
     // There's a race condition in Onyx which makes it return data from the previous Search, so in addition to checking that the data is loaded

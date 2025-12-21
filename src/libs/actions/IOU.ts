@@ -68,6 +68,7 @@ import * as Localize from '@libs/Localize';
 import Log from '@libs/Log';
 import {validateAmount} from '@libs/MoneyRequestUtils';
 import isReportOpenInRHP from '@libs/Navigation/helpers/isReportOpenInRHP';
+import isReportTopmostSplitNavigator from '@libs/Navigation/helpers/isReportTopmostSplitNavigator';
 import isSearchTopmostFullScreenRoute from '@libs/Navigation/helpers/isSearchTopmostFullScreenRoute';
 import Navigation, {navigationRef} from '@libs/Navigation/Navigation';
 // eslint-disable-next-line @typescript-eslint/no-deprecated
@@ -79,6 +80,7 @@ import {getCustomUnitID} from '@libs/PerDiemRequestUtils';
 import Performance from '@libs/Performance';
 import {getAccountIDsByLogins, getLoginByAccountID} from '@libs/PersonalDetailsUtils';
 import {addSMSDomainIfPhoneNumber} from '@libs/PhoneNumber';
+import {buildCannedSearchQuery} from '@libs/SearchQueryUtils';
 import {
     arePaymentsEnabled,
     getDistanceRateCustomUnit,
@@ -973,6 +975,8 @@ Onyx.connect({
     callback: (val) => (recentWaypoints = val ?? []),
 });
 
+let moneyRequestOriginIsInboxTab: boolean | undefined;
+
 /**
  * @deprecated This function uses Onyx.connect and should be replaced with useOnyx for reactive data access.
  * All usages of this function should be replaced with useOnyx hook in React components.
@@ -1012,6 +1016,48 @@ function dismissModalAndOpenReportInInboxTab(reportID?: string) {
     Navigation.dismissModalWithReport({reportID});
 }
 
+function navigateAfterExpenseCreation({
+    activeReportID,
+    transactionID,
+    isRetry,
+    isFromGlobalCreate,
+}: {
+    activeReportID?: string;
+    transactionID?: string;
+    isRetry?: boolean;
+    isFromGlobalCreate?: boolean;
+}) {
+    if (isRetry) {
+        return;
+    }
+
+    const hasOriginFlag = moneyRequestOriginIsInboxTab !== undefined;
+    const shouldHandleWithSearch = hasOriginFlag || isFromGlobalCreate;
+    const shouldReturnToInboxTab = hasOriginFlag ? moneyRequestOriginIsInboxTab : false;
+
+    if (!shouldHandleWithSearch) {
+        moneyRequestOriginIsInboxTab = undefined;
+        dismissModalAndOpenReportInInboxTab(activeReportID);
+        return;
+    }
+
+    moneyRequestOriginIsInboxTab = undefined;
+
+    if (shouldReturnToInboxTab) {
+        dismissModalAndOpenReportInInboxTab(activeReportID);
+        return;
+    }
+
+    if (transactionID) {
+        Onyx.set(ONYXKEYS.SEARCH_TRANSACTION_HIGHLIGHT, {transactionIDs: [transactionID], type: CONST.SEARCH.DATA_TYPES.EXPENSE});
+    }
+
+    const expensesQuery = buildCannedSearchQuery({type: CONST.SEARCH.DATA_TYPES.EXPENSE});
+    Navigation.dismissModal({
+        callback: () => Navigation.navigate(ROUTES.SEARCH_ROOT.getRoute({query: expensesQuery})),
+    });
+}
+
 /**
  * Find the report preview action from given chat report and iou report
  */
@@ -1049,6 +1095,10 @@ function initMoneyRequest({
     currentUserPersonalDetails,
     hasOnlyPersonalPolicies,
 }: InitMoneyRequestParams) {
+    if (isFromGlobalCreate) {
+        moneyRequestOriginIsInboxTab = isReportTopmostSplitNavigator();
+    }
+
     // Generate a brand new transactionID
     // This will be fixed as part of https://github.com/Expensify/Expensify/issues/507850
     // eslint-disable-next-line @typescript-eslint/no-deprecated
@@ -1165,6 +1215,7 @@ function startMoneyRequest(
     backToReport?: string,
     draftTransactions?: OnyxCollection<OnyxTypes.Transaction>,
 ) {
+    moneyRequestOriginIsInboxTab = iouType === CONST.IOU.TYPE.CREATE ? isReportTopmostSplitNavigator() : undefined;
     Performance.markStart(CONST.TIMING.OPEN_CREATE_EXPENSE);
     const sourceRoute = Navigation.getActiveRoute();
     startSpan(CONST.TELEMETRY.SPAN_OPEN_CREATE_EXPENSE, {
@@ -6510,9 +6561,12 @@ function requestMoney(requestMoneyInformation: RequestMoneyInformation): {iouRep
     if (shouldHandleNavigation) {
         // eslint-disable-next-line @typescript-eslint/no-deprecated
         InteractionManager.runAfterInteractions(() => removeDraftTransactions());
-        if (!requestMoneyInformation.isRetry) {
-            dismissModalAndOpenReportInInboxTab(backToReport ?? activeReportID);
-        }
+        navigateAfterExpenseCreation({
+            activeReportID: backToReport ?? activeReportID,
+            transactionID: transaction?.transactionID,
+            isRetry: requestMoneyInformation.isRetry,
+            isFromGlobalCreate: transaction?.isFromGlobalCreate,
+        });
 
         const trackReport = Navigation.getReportRouteByID(linkedTrackedExpenseReportAction?.childReportID);
         if (trackReport?.key) {
@@ -7027,9 +7081,12 @@ function trackExpense(params: CreateTrackExpenseParams) {
         // eslint-disable-next-line @typescript-eslint/no-deprecated
         InteractionManager.runAfterInteractions(() => removeDraftTransactions());
 
-        if (!params.isRetry) {
-            dismissModalAndOpenReportInInboxTab(activeReportID);
-        }
+        navigateAfterExpenseCreation({
+            activeReportID,
+            transactionID: transaction?.transactionID,
+            isRetry: params.isRetry,
+            isFromGlobalCreate: transaction?.isFromGlobalCreate,
+        });
     }
 
     notifyNewAction(activeReportID, payeeAccountID);

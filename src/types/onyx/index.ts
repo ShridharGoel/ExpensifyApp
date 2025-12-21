@@ -109,6 +109,7 @@ import type ReviewDuplicates from './ReviewDuplicates';
 import type {SaveSearch} from './SaveSearch';
 import type ScheduleCallDraft from './ScheduleCallDraft';
 import type ScreenShareRequest from './ScreenShareRequest';
+import type SearchTransactionHighlight from './SearchTransactionHighlight';
 import type SearchResults from './SearchResults';
 import type SecurityGroup from './SecurityGroup';
 import type SelectedTabRequest from './SelectedTabRequest';
@@ -267,6 +268,7 @@ export type {
     PolicyJoinMember,
     CapturedLogs,
     SearchResults,
+    SearchTransactionHighlight,
     ReviewDuplicates,
     PrivateSubscription,
     BillingGraceEndPeriod,

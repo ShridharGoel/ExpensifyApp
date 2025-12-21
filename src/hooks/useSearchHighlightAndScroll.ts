@@ -23,6 +23,7 @@ type UseSearchHighlightAndScroll = {
     searchKey: SearchKey | undefined;
     offset: number;
     shouldCalculateTotals: boolean;
+    manualHighlightTransactionIDs?: Set<string> | null;
 };
 
 /**
@@ -38,6 +39,7 @@ function useSearchHighlightAndScroll({
     searchKey,
     offset,
     shouldCalculateTotals,
+    manualHighlightTransactionIDs = null,
 }: UseSearchHighlightAndScroll) {
     const isFocused = useIsFocused();
     const {isOffline} = useNetwork();
@@ -51,6 +53,7 @@ function useSearchHighlightAndScroll({
     const initializedRef = useRef(false);
     const hasPendingSearchRef = useRef(false);
     const isChat = queryJSON.type === CONST.SEARCH.DATA_TYPES.CHAT;
+    const pendingManualHighlightRef = useRef<Set<string> | null>(null);
 
     const existingSearchResultIDs = useMemo(() => {
         if (!searchResults?.data) {
@@ -78,8 +81,27 @@ function useSearchHighlightAndScroll({
         return result;
     }, [previousTransactions, transactions]);
 
+    useEffect(() => {
+        if (!manualHighlightTransactionIDs || manualHighlightTransactionIDs.size === 0) {
+            pendingManualHighlightRef.current = null;
+            return;
+        }
+        pendingManualHighlightRef.current = manualHighlightTransactionIDs;
+    }, [manualHighlightTransactionIDs]);
+
     // Trigger search when a new report action is added while on chat or when a new transaction is added for the other search types.
     useEffect(() => {
+        if (pendingManualHighlightRef.current && searchResults?.data) {
+            const manualHighlightKeys = Array.from(pendingManualHighlightRef.current);
+            const hasMatchingManualResult = manualHighlightKeys.some((key) => Boolean(searchResults?.data?.[key]));
+            if (hasMatchingManualResult) {
+                triggeredByHookRef.current = true;
+                hasNewItemsRef.current = true;
+                setNewSearchResultKeys(pendingManualHighlightRef.current);
+                pendingManualHighlightRef.current = null;
+            }
+        }
+
         const previousTransactionsIDs = Object.keys(previousTransactions ?? {});
         const transactionsIDs = Object.keys(transactions ?? {});
 
