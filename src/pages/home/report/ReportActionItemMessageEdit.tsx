@@ -26,6 +26,7 @@ import useReportIsArchived from '@hooks/useReportIsArchived';
 import useReportScrollManager from '@hooks/useReportScrollManager';
 import useResponsiveLayout from '@hooks/useResponsiveLayout';
 import useScrollBlocker from '@hooks/useScrollBlocker';
+import useSidePanel from '@hooks/useSidePanel';
 import useStyleUtils from '@hooks/useStyleUtils';
 import useTheme from '@hooks/useTheme';
 import useThemeStyles from '@hooks/useThemeStyles';
@@ -153,6 +154,12 @@ function ReportActionItemMessageEdit({
     const originalParentReportID = getOriginalReportID(originalReportID, action);
     const isOriginalParentReportArchived = useReportIsArchived(originalParentReportID);
     const ancestors = useAncestors(originalReport);
+    const [conciergeReportID] = useOnyx(ONYXKEYS.CONCIERGE_REPORT_ID, {canBeMissing: true});
+    const {shouldHideSidePanel} = useSidePanel();
+    const isConciergeSidePanelContext = useMemo(
+        () => conciergeReportID === reportID && !shouldHideSidePanel,
+        [conciergeReportID, reportID, shouldHideSidePanel],
+    );
 
     useEffect(() => {
         draftMessageVideoAttributeCache.clear();
@@ -199,6 +206,14 @@ function ReportActionItemMessageEdit({
     const focus = useCallback((shouldDelay = false, forcedSelectionRange?: Selection) => {
         focusComposerWithDelay(textInputRef.current)(shouldDelay, forcedSelectionRange);
     }, []);
+
+    // Ensure the inline edit composer grabs focus as soon as it mounts.
+    useEffect(() => {
+        if (!textInputRef.current) {
+            return;
+        }
+        focus(true);
+    }, [focus]);
 
     // Take over focus priority
     const setUpComposeFocusManager = useCallback(() => {
@@ -282,7 +297,13 @@ function ReportActionItemMessageEdit({
             ReportActionComposeFocusManager.clear(true);
             // Wait for report action compose re-mounting on mWeb
             // eslint-disable-next-line @typescript-eslint/no-deprecated
-            InteractionManager.runAfterInteractions(() => ReportActionComposeFocusManager.focus());
+            InteractionManager.runAfterInteractions(() => {
+                if (isConciergeSidePanelContext) {
+                    focusComposerWithDelay(ReportActionComposeFocusManager.composerRef.current)(true);
+                } else {
+                    ReportActionComposeFocusManager.focus(true);
+                }
+            });
         }
 
         // Scroll to the last comment after editing to make sure the whole comment is clearly visible in the report.
@@ -291,7 +312,7 @@ function ReportActionItemMessageEdit({
                 reportScrollManager.scrollToIndex(index, false);
             });
         }
-    }, [action, index, reportID, reportScrollManager, isActive]);
+    }, [action, index, reportID, reportScrollManager, isActive, isConciergeSidePanelContext]);
 
     /**
      * Save the draft of the comment to be the new comment message. This will take the comment out of "edit mode" with

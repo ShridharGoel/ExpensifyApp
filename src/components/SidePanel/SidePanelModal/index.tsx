@@ -49,14 +49,6 @@ function SidePanelModal({children, sidePanelTranslateX, closeSidePanel, shouldHi
     useKeyboardShortcut(CONST.KEYBOARD_SHORTCUTS.SHORTCUTS, onCloseSidePanelOnSmallScreens, {shouldBubble: true});
 
     // Web back button: push history state and close Side Panel on popstate
-    useEffect(() => {
-        ComposerFocusManager.resetReadyToFocus(uniqueModalId);
-        return () => {
-            ComposerFocusManager.setReadyToFocus(uniqueModalId);
-        };
-        // eslint-disable-next-line react-compiler/react-compiler, react-hooks/exhaustive-deps
-    }, []);
-
     return (
         <ModalPortal>
             <FocusTrapForModal active={!isExtraLargeScreenWidth}>

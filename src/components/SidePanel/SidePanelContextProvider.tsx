@@ -7,6 +7,7 @@ import useResponsiveLayout from '@hooks/useResponsiveLayout';
 import useSidePanelDisplayStatus from '@hooks/useSidePanelDisplayStatus';
 import useWindowDimensions from '@hooks/useWindowDimensions';
 import SidePanelActions from '@libs/actions/SidePanel';
+import ComposerFocusManager from '@libs/ComposerFocusManager';
 import focusComposerWithDelay from '@libs/focusComposerWithDelay';
 import ReportActionComposeFocusManager from '@libs/ReportActionComposeFocusManager';
 import variables from '@styles/variables';
@@ -47,6 +48,7 @@ function SidePanelContextProvider({children}: PropsWithChildren) {
     const {isExtraLargeScreenWidth, shouldUseNarrowLayout} = useResponsiveLayout();
     const {windowWidth} = useWindowDimensions();
     const sidePanelWidth = shouldUseNarrowLayout ? windowWidth : variables.sidePanelWidth;
+    const uniqueModalId = useRef(ComposerFocusManager.getId()).current;
 
     const [isSidePanelTransitionEnded, setIsSidePanelTransitionEnded] = useState(true);
     const {shouldHideSidePanel, shouldHideSidePanelBackdrop, shouldHideHelpButton, isSidePanelHiddenOrLargeScreen, sidePanelNVP} = useSidePanelDisplayStatus();
@@ -86,8 +88,10 @@ function SidePanelContextProvider({children}: PropsWithChildren) {
 
             // Focus the composer after closing the Side Panel
             focusComposerWithDelay(ReportActionComposeFocusManager.composerRef.current, CONST.SIDE_PANEL_ANIMATED_TRANSITION + CONST.COMPOSER_FOCUS_DELAY)(true);
+            ComposerFocusManager.resetReadyToFocus(uniqueModalId);
+            setTimeout(() => ComposerFocusManager.setReadyToFocus(uniqueModalId), CONST.SIDE_PANEL_ANIMATED_TRANSITION);
         },
-        [isExtraLargeScreenWidth, sidePanelNVP],
+        [isExtraLargeScreenWidth, sidePanelNVP, uniqueModalId],
     );
 
     const value = useMemo(

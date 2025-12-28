@@ -594,7 +594,11 @@ function ComposerWithSuggestions({
     const setUpComposeFocusManager = useCallback(
         (shouldTakeOverFocus = false) => {
             ReportActionComposeFocusManager.onComposerFocus((shouldFocusForNonBlurInputOnTapOutside = false) => {
-                if ((!willBlurTextInputOnTapOutside && !shouldFocusForNonBlurInputOnTapOutside) || !isFocused || !isSidePanelHiddenOrLargeScreen) {
+                if ((!willBlurTextInputOnTapOutside && !shouldFocusForNonBlurInputOnTapOutside) || !isFocused) {
+                    return;
+                }
+
+                if (!isSidePanelHiddenOrLargeScreen && !shouldFocusForNonBlurInputOnTapOutside) {
                     return;
                 }
 
