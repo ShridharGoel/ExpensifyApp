@@ -9,6 +9,7 @@ import {createTransactionThreadReport, setOptimisticTransactionThread} from '@li
 import {clearActiveTransactionIDs} from '@libs/actions/TransactionThreadNavigation';
 import type {RightModalNavigatorParamList} from '@libs/Navigation/types';
 import {getOriginalMessage, isMoneyRequestAction} from '@libs/ReportActionsUtils';
+import {isTransactionPendingDelete} from '@libs/TransactionUtils';
 import Navigation from '@navigation/Navigation';
 import navigationRef from '@navigation/navigationRef';
 import ONYXKEYS from '@src/ONYXKEYS';
@@ -41,21 +42,62 @@ function MoneyRequestReportTransactionsNavigation({currentTransactionID, isFromR
 
     const {markReportIDAsExpense} = useContext(WideRHPContext);
 
+    const [currentTransaction] = useOnyx(`${ONYXKEYS.COLLECTION.TRANSACTION}${currentTransactionID}`, {canBeMissing: true});
+
+    const parentReportTransactionsSelector = useCallback(
+        (allTransactions: OnyxCollection<OnyxTypes.Transaction>) =>
+            Object.values(allTransactions ?? {}).filter(
+                (transaction): transaction is OnyxTypes.Transaction =>
+                    !!transaction && transaction.reportID === currentTransaction?.reportID && !isTransactionPendingDelete(transaction),
+            ),
+        [currentTransaction?.reportID],
+    );
+
+    const [parentReportTransactions = getEmptyArray<OnyxTypes.Transaction>()] = useOnyx(ONYXKEYS.COLLECTION.TRANSACTION, {
+        canBeMissing: true,
+        selector: parentReportTransactionsSelector,
+    });
+
+    const mergedTransactionIDsList = useMemo(() => {
+        if (!parentReportTransactions.length) {
+            return transactionIDsList;
+        }
+
+        const sortedParentTransactionIDs = [...parentReportTransactions]
+            .sort((firstTransaction, secondTransaction) => (firstTransaction.created ?? '').localeCompare(secondTransaction.created ?? ''))
+            .map((transaction) => transaction.transactionID);
+
+        if (transactionIDsList.length === 0) {
+            return sortedParentTransactionIDs;
+        }
+
+        const knownTransactionIDs = new Set(transactionIDsList);
+        const mergedTransactionIDs = [...transactionIDsList];
+
+        sortedParentTransactionIDs.forEach((transactionID) => {
+            if (!knownTransactionIDs.has(transactionID)) {
+                mergedTransactionIDs.push(transactionID);
+            }
+        });
+
+        return mergedTransactionIDs;
+    }, [parentReportTransactions, transactionIDsList]);
+
     const {prevTransactionID, nextTransactionID} = useMemo(() => {
-        if (!transactionIDsList || transactionIDsList.length < 2) {
+        if (!mergedTransactionIDsList || mergedTransactionIDsList.length < 2) {
             return {prevTransactionID: undefined, nextTransactionID: undefined};
         }
 
-        const currentTransactionIndex = transactionIDsList.findIndex((id) => id === currentTransactionID);
+        const currentTransactionIndex = mergedTransactionIDsList.findIndex((id) => id === currentTransactionID);
 
-        const prevID = currentTransactionIndex > 0 ? transactionIDsList.at(currentTransactionIndex - 1) : undefined;
-        const nextID = transactionIDsList.at(currentTransactionIndex + 1);
+        const prevID = currentTransactionIndex > 0 ? mergedTransactionIDsList.at(currentTransactionIndex - 1) : undefined;
+        const nextID = mergedTransactionIDsList.at(currentTransactionIndex + 1);
 
         return {
             prevTransactionID: prevID,
             nextTransactionID: nextID,
         };
-    }, [currentTransactionID, transactionIDsList]);
+    }, [currentTransactionID, mergedTransactionIDsList]);
 
     const prevNextTransactionsSelector = useCallback(
         (allTransactions: OnyxCollection<OnyxTypes.Transaction>) =>
@@ -63,7 +105,7 @@ function MoneyRequestReportTransactionsNavigation({currentTransactionID, isFromR
         [currentTransactionID, nextTransactionID, prevTransactionID],
     );
 
-    const [[currentTransaction, prevTransaction, nextTransaction] = getEmptyArray<OnyxTypes.Transaction>()] = useOnyx(ONYXKEYS.COLLECTION.TRANSACTION, {
+    const [[, prevTransaction, nextTransaction] = getEmptyArray<OnyxTypes.Transaction>()] = useOnyx(ONYXKEYS.COLLECTION.TRANSACTION, {
         canBeMissing: true,
         selector: prevNextTransactionsSelector,
     });
@@ -113,7 +155,7 @@ function MoneyRequestReportTransactionsNavigation({currentTransactionID, isFromR
         };
     }, []);
 
-    if (transactionIDsList.length < 2) {
+    if (mergedTransactionIDsList.length < 2) {
         return;
     }
 
