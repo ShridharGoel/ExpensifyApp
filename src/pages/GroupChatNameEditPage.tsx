@@ -34,14 +34,18 @@ function GroupChatNameEditPage({report}: GroupChatNameEditPageProps) {
     const reportID = report?.reportID;
     const isUpdatingExistingReport = !!reportID;
     const [groupChatDraft = getGroupChatDraft()] = useOnyx(ONYXKEYS.NEW_GROUP_CHAT_DRAFT, {canBeMissing: true});
+    const [reportMetadata] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT_METADATA}${reportID}`, {canBeMissing: true});
 
     const styles = useThemeStyles();
     const {translate, formatPhoneNumber} = useLocalize();
     const {inputCallbackRef} = useAutoFocusInput();
 
     const existingReportName = useMemo(
-        () => (report ? getGroupChatName(formatPhoneNumber, undefined, false, report) : getGroupChatName(formatPhoneNumber, groupChatDraft?.participants)),
-        [formatPhoneNumber, groupChatDraft?.participants, report],
+        () =>
+            report
+                ? getGroupChatName(formatPhoneNumber, undefined, false, report, reportMetadata)
+                : getGroupChatName(formatPhoneNumber, groupChatDraft?.participants),
+        [formatPhoneNumber, groupChatDraft?.participants, report, reportMetadata],
     );
     // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
     const currentChatName = reportID ? existingReportName : groupChatDraft?.reportName || existingReportName;

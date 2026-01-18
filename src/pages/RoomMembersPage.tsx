@@ -138,7 +138,7 @@ function RoomMembersPage({report, policy}: RoomMembersPageProps) {
      */
     const removeUsers = () => {
         if (report) {
-            removeFromRoom(report.reportID, selectedMembers);
+            removeFromRoom(report.reportID, selectedMembers, reportMetadata);
         }
         setSearchValue('');
         setRemoveMembersConfirmModalVisible(false);
@@ -309,7 +309,7 @@ function RoomMembersPage({report, policy}: RoomMembersPageProps) {
 
     const dismissError = useCallback(
         (item: ListItem) => {
-            clearAddRoomMemberError(report.reportID, String(item.accountID));
+            clearAddRoomMemberError(report.reportID, String(item.accountID), reportMetadata);
         },
         [report.reportID],
     );

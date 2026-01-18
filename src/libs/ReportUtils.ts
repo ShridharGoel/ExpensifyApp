@@ -1140,28 +1140,6 @@ Onyx.connectWithoutView({
     },
 });
 
-let allReportMetadata: OnyxCollection<ReportMetadata>;
-const allReportMetadataKeyValue: Record<string, ReportMetadata> = {};
-Onyx.connectWithoutView({
-    key: ONYXKEYS.COLLECTION.REPORT_METADATA,
-    waitForCollectionCallback: true,
-    callback: (value) => {
-        if (!value) {
-            return;
-        }
-        allReportMetadata = value;
-
-        for (const [reportID, reportMetadata] of Object.entries(value)) {
-            if (!reportMetadata) {
-                continue;
-            }
-
-            const [, id] = reportID.split('_');
-            allReportMetadataKeyValue[id] = reportMetadata;
-        }
-    },
-});
-
 let allReportNameValuePair: OnyxCollection<ReportNameValuePairs>;
 Onyx.connectWithoutView({
     key: ONYXKEYS.COLLECTION.REPORT_NAME_VALUE_PAIRS,
@@ -2215,10 +2193,15 @@ function getMostRecentlyVisitedReport(reports: Array<OnyxEntry<Report>>, reportM
 }
 
 /**
- * This function is used to find the last accessed report and we don't need to subscribe the data in the UI.
- * So please use `Onyx.connectWithoutView()` to get the necessary data when we remove the `Onyx.connect()`
+ * This function is used to find the last accessed report.
  */
-function findLastAccessedReport(ignoreDomainRooms: boolean, openOnAdminRoom = false, policyID?: string, excludeReportID?: string): OnyxEntry<Report> {
+function findLastAccessedReport(
+    ignoreDomainRooms: boolean,
+    openOnAdminRoom = false,
+    policyID?: string,
+    excludeReportID?: string,
+    reportMetadataCollection?: OnyxCollection<ReportMetadata>,
+): OnyxEntry<Report> {
     // If it's the user's first time using New Expensify, then they could either have:
     //   - just a Concierge report, if so we'll return that
     //   - their Concierge report, and a separate report that must have deeplinked them to the app before they created their account.
@@ -2273,15 +2256,15 @@ function findLastAccessedReport(ignoreDomainRooms: boolean, openOnAdminRoom = fa
 
     // At least two reports remain: self DM and Concierge chat.
     // Return the most recently visited report. Get the last read report from the report metadata.
-    // If allReportMetadata is empty we'll return most recent report owned by user
-    if (isEmptyObject(allReportMetadata)) {
+    // If reportMetadataCollection is empty we'll return most recent report owned by user
+    if (isEmptyObject(reportMetadataCollection)) {
         const ownedReports = reportsValues.filter((report) => report?.ownerAccountID === currentUserAccountID);
         if (ownedReports.length > 0) {
             return lodashMaxBy(ownedReports, (a) => a?.lastReadTime ?? '');
         }
         return lodashMaxBy(reportsValues, (a) => a?.lastReadTime ?? '');
     }
-    return getMostRecentlyVisitedReport(reportsValues, allReportMetadata);
+    return getMostRecentlyVisitedReport(reportsValues, reportMetadataCollection);
 }
 
 /**
@@ -3398,7 +3381,7 @@ function getParticipantsAccountIDsForDisplay(
     reportMetadataParam?: OnyxEntry<ReportMetadata>,
 ): number[] {
     const reportParticipants = report?.participants ?? {};
-    const reportMetadata = reportMetadataParam ?? getReportMetadata(report?.reportID);
+    const reportMetadata = reportMetadataParam;
     let participantsEntries = Object.entries(reportParticipants);
 
     // We should not show participants that have an optimistic entry with the same login in the personal details
@@ -10293,13 +10276,13 @@ function getTaskAssigneeChatOnyxData(
     parentReportID: string | undefined,
     title: string,
     assigneeChatReport: OnyxEntry<Report>,
+    assigneeChatReportMetadata?: OnyxEntry<ReportMetadata>,
     isOptimisticAssigneeChatReport?: boolean,
 ): OnyxDataTaskAssigneeChat {
     // Set if we need to add a comment to the assignee chat notifying them that they have been assigned a task
     let optimisticAssigneeAddComment: OptimisticReportAction | undefined;
     // Set if this is a new chat that needs to be created for the assignee
     let optimisticChatCreatedReportAction: OptimisticCreatedReportAction | undefined;
-    const assigneeChatReportMetadata = getReportMetadata(assigneeChatReportID);
     const currentTime = DateUtils.getDBTime();
     const optimisticData: Array<OnyxUpdate<typeof ONYXKEYS.COLLECTION.REPORT | typeof ONYXKEYS.COLLECTION.REPORT_METADATA | typeof ONYXKEYS.COLLECTION.REPORT_ACTIONS>> = [];
     const successData: Array<
@@ -12480,10 +12463,6 @@ function hasInvoiceReports() {
     return reports.some((report) => isInvoiceReport(report));
 }
 
-function getReportMetadata(reportID: string | undefined) {
-    return reportID ? allReportMetadataKeyValue[reportID] : undefined;
-}
-
 /**
  * Helper method to check if participant email is Manager McTest
  */
@@ -13267,7 +13246,6 @@ export {
     getAllReportActionsErrorsAndReportActionThatRequiresAttention,
     hasInvoiceReports,
     shouldExcludeAncestorReportAction,
-    getReportMetadata,
     buildOptimisticSelfDMReport,
     isHiddenForCurrentUser,
     isSelectedManagerMcTest,

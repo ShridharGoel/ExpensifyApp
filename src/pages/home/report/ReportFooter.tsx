@@ -147,6 +147,7 @@ function ReportFooter({
 
             let assignee: OnyxEntry<OnyxTypes.PersonalDetails>;
             let assigneeChatReport;
+            let isOptimisticAssigneeChatReport = false;
             if (mentionWithDomain) {
                 if (isValidMention) {
                     assignee = Object.values(allPersonalDetails ?? {}).find((value) => value?.login === mentionWithDomain) ?? undefined;
@@ -157,6 +158,7 @@ function ReportFooter({
                         });
                         assignee = optimisticDataForNewAssignee.assignee;
                         assigneeChatReport = optimisticDataForNewAssignee.assigneeReport;
+                        isOptimisticAssigneeChatReport = true;
                     }
                 } else {
                     // If the mention is not valid, include it on the title.
@@ -173,6 +175,7 @@ function ReportFooter({
                 currentUserEmail,
                 assigneeAccountID: assignee?.accountID,
                 assigneeChatReport,
+                isOptimisticAssigneeChatReport,
                 policyID: report.policyID,
                 isCreatedUsingMarkdown: true,
                 quickAction,

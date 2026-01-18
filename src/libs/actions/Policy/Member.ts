@@ -28,7 +28,7 @@ import * as ReportUtils from '@libs/ReportUtils';
 import * as FormActions from '@userActions/FormActions';
 import CONST from '@src/CONST';
 import ONYXKEYS from '@src/ONYXKEYS';
-import type {ImportedSpreadsheetMemberData, InvitedEmailsToAccountIDs, Policy, PolicyEmployee, PolicyOwnershipChangeChecks, Report, ReportAction, ReportActions} from '@src/types/onyx';
+import type {ImportedSpreadsheetMemberData, InvitedEmailsToAccountIDs, Policy, PolicyEmployee, PolicyOwnershipChangeChecks, Report, ReportAction, ReportActions, ReportMetadata} from '@src/types/onyx';
 import type {PendingAction} from '@src/types/onyx/OnyxCommon';
 import type {JoinWorkspaceResolution} from '@src/types/onyx/OriginalMessage';
 import type {ApprovalRule} from '@src/types/onyx/Policy';
@@ -108,9 +108,9 @@ function buildRoomMembersOnyxData(
     roomType: typeof CONST.REPORT.CHAT_TYPE.POLICY_ANNOUNCE | typeof CONST.REPORT.CHAT_TYPE.POLICY_ADMINS,
     policyID: string,
     accountIDs: number[],
+    reportMetadata?: OnyxEntry<ReportMetadata>,
 ): OnyxDataReturnType {
     const report = ReportUtils.getRoom(roomType, policyID);
-    const reportMetadata = ReportUtils.getReportMetadata(report?.reportID);
     const roomMembers: OnyxDataReturnType = {
         optimisticData: [],
         failureData: [],
@@ -217,6 +217,7 @@ function removeOptimisticRoomMembers(
     roomType: typeof CONST.REPORT.CHAT_TYPE.POLICY_ANNOUNCE | typeof CONST.REPORT.CHAT_TYPE.POLICY_ADMINS,
     policyID: string | undefined,
     accountIDs: number[],
+    reportMetadata?: OnyxEntry<ReportMetadata>,
 ): OnyxDataReturnType {
     const roomMembers: OnyxDataReturnType = {
         optimisticData: [],
@@ -229,8 +230,6 @@ function removeOptimisticRoomMembers(
     }
 
     const report = ReportUtils.getRoom(roomType, policyID);
-    const reportMetadata = ReportUtils.getReportMetadata(report?.reportID);
-
     if (!report) {
         return roomMembers;
     }

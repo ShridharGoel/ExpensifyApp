@@ -144,7 +144,6 @@ import {
     getReportFieldsByPolicyID,
     getReportLastMessage,
     getReportLastVisibleActionCreated,
-    getReportMetadata,
     getReportNotificationPreference,
     getReportOrDraftReport,
     getReportPreviewMessage,
@@ -201,6 +200,7 @@ import type {
     Report,
     ReportAction,
     ReportActionReactions,
+    ReportMetadata,
     ReportNextStepDeprecated,
     ReportUserIsTyping,
     Transaction,
@@ -3317,9 +3317,8 @@ function navigateToConciergeChatAndDeleteReport(reportID: string | undefined, sh
     });
 }
 
-function clearCreateChatError(report: OnyxEntry<Report>) {
-    const metaData = getReportMetadata(report?.reportID);
-    const isOptimisticReport = metaData?.isOptimisticReport;
+function clearCreateChatError(report: OnyxEntry<Report>, reportMetadata?: OnyxEntry<ReportMetadata>) {
+    const isOptimisticReport = reportMetadata?.isOptimisticReport;
     if (report?.errorFields?.createChat && !isOptimisticReport) {
         clearReportFieldKeyErrors(report.reportID, 'createChat');
         return;
@@ -3874,9 +3873,13 @@ function leaveRoom(reportID: string, currentUserAccountID: number, isWorkspaceMe
     navigateToMostRecentReport(report);
 }
 
-function buildInviteToRoomOnyxData(reportID: string, inviteeEmailsToAccountIDs: InvitedEmailsToAccountIDs, formatPhoneNumber: LocaleContextProps['formatPhoneNumber']) {
+function buildInviteToRoomOnyxData(
+    reportID: string,
+    inviteeEmailsToAccountIDs: InvitedEmailsToAccountIDs,
+    formatPhoneNumber: LocaleContextProps['formatPhoneNumber'],
+    reportMetadata?: OnyxEntry<ReportMetadata>,
+) {
     const report = allReports?.[`${ONYXKEYS.COLLECTION.REPORT}${reportID}`];
-    const reportMetadata = getReportMetadata(reportID);
     const isGroupChat = isGroupChatReportUtils(report);
 
     const defaultNotificationPreference = getDefaultNotificationPreferenceForReport(report);
@@ -3973,8 +3976,13 @@ function buildInviteToRoomOnyxData(reportID: string, inviteeEmailsToAccountIDs: 
 }
 
 /** Invites people to a room */
-function inviteToRoom(reportID: string, inviteeEmailsToAccountIDs: InvitedEmailsToAccountIDs, formatPhoneNumber: LocaleContextProps['formatPhoneNumber']) {
-    const {optimisticData, successData, failureData, isGroupChat, inviteeEmails, newAccountIDs} = buildInviteToRoomOnyxData(reportID, inviteeEmailsToAccountIDs, formatPhoneNumber);
+function inviteToRoom(
+    reportID: string,
+    inviteeEmailsToAccountIDs: InvitedEmailsToAccountIDs,
+    formatPhoneNumber: LocaleContextProps['formatPhoneNumber'],
+    reportMetadata?: OnyxEntry<ReportMetadata>,
+) {
+    const {optimisticData, successData, failureData, isGroupChat, inviteeEmails, newAccountIDs} = buildInviteToRoomOnyxData(reportID, inviteeEmailsToAccountIDs, formatPhoneNumber, reportMetadata);
 
     if (isGroupChat) {
         const parameters: InviteToGroupChatParams = {
@@ -4004,8 +4012,7 @@ function inviteToRoomAction(report: Report, ancestors: Ancestor[], inviteeEmails
     addComment(report, report.reportID, ancestors, inviteeEmails.map((login) => `@${login}`).join(' '), timezoneParam, false);
 }
 
-function clearAddRoomMemberError(reportID: string, invitedAccountID: string) {
-    const reportMetadata = getReportMetadata(reportID);
+function clearAddRoomMemberError(reportID: string, invitedAccountID: string, reportMetadata?: OnyxEntry<ReportMetadata>) {
     Onyx.merge(`${ONYXKEYS.COLLECTION.REPORT}${reportID}`, {
         participants: {
             [invitedAccountID]: null,
@@ -4061,16 +4068,20 @@ function updateGroupChatMemberRoles(reportID: string, accountIDList: number[], r
 }
 
 /** Invites people to a group chat */
-function inviteToGroupChat(reportID: string, inviteeEmailsToAccountIDs: InvitedEmailsToAccountIDs, formatPhoneNumber: LocaleContextProps['formatPhoneNumber']) {
-    inviteToRoom(reportID, inviteeEmailsToAccountIDs, formatPhoneNumber);
+function inviteToGroupChat(
+    reportID: string,
+    inviteeEmailsToAccountIDs: InvitedEmailsToAccountIDs,
+    formatPhoneNumber: LocaleContextProps['formatPhoneNumber'],
+    reportMetadata?: OnyxEntry<ReportMetadata>,
+) {
+    inviteToRoom(reportID, inviteeEmailsToAccountIDs, formatPhoneNumber, reportMetadata);
 }
 
 /** Removes people from a room
  *  Please see https://github.com/Expensify/App/blob/main/README.md#Security for more details
  */
-function removeFromRoom(reportID: string, targetAccountIDs: number[]) {
+function removeFromRoom(reportID: string, targetAccountIDs: number[], reportMetadata?: OnyxEntry<ReportMetadata>) {
     const report = allReports?.[`${ONYXKEYS.COLLECTION.REPORT}${reportID}`];
-    const reportMetadata = getReportMetadata(reportID);
     if (!report) {
         return;
     }

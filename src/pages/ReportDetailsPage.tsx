@@ -544,7 +544,7 @@ function ReportDetailsPage({policy, report, route, reportMetadata}: ReportDetail
                 icon: expensifyIcons.Exit,
                 isAnonymousAction: true,
                 action: () => {
-                    if (getParticipantsAccountIDsForDisplay(report, false, true).length === 1 && isRootGroupChat) {
+                    if (getParticipantsAccountIDsForDisplay(report, false, true, false, reportMetadata).length === 1 && isRootGroupChat) {
                         setIsLastMemberLeavingGroupModalVisible(true);
                         return;
                     }

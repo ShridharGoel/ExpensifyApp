@@ -52,6 +52,8 @@ type CreateTaskAndNavigateParams = {
     currentUserEmail: string;
     assigneeAccountID?: number;
     assigneeChatReport?: OnyxEntry<OnyxTypes.Report>;
+    assigneeChatReportMetadata?: OnyxEntry<OnyxTypes.ReportMetadata>;
+    isOptimisticAssigneeChatReport?: boolean;
     policyID?: string;
     isCreatedUsingMarkdown?: boolean;
     quickAction?: OnyxEntry<OnyxTypes.QuickAction>;
@@ -94,6 +96,8 @@ function createTaskAndNavigate(params: CreateTaskAndNavigateParams) {
         currentUserEmail,
         assigneeAccountID = 0,
         assigneeChatReport,
+        assigneeChatReportMetadata,
+        isOptimisticAssigneeChatReport,
         policyID = CONST.POLICY.OWNER_EMAIL_FAKE,
         isCreatedUsingMarkdown = false,
         quickAction = {},
@@ -209,6 +213,8 @@ function createTaskAndNavigate(params: CreateTaskAndNavigateParams) {
             parentReportID,
             title,
             assigneeChatReport,
+            assigneeChatReportMetadata,
+            isOptimisticAssigneeChatReport,
         );
 
         optimisticData.push(...assigneeChatReportOnyxData.optimisticData);
@@ -640,7 +646,6 @@ function editTaskAssignee(
 
     let assigneeChatReportOnyxData;
     const assigneeChatReportID = assigneeChatReport?.reportID;
-    const assigneeChatReportMetadata = ReportUtils.getReportMetadata(assigneeChatReportID);
     const taskOwnerAccountID = report?.ownerAccountID;
     const optimisticReport: OptimisticReport = {
         reportName,
@@ -746,10 +751,11 @@ function editTaskAssignee(
             report.parentReportID,
             reportName ?? '',
             assigneeChatReport,
+            undefined,
             isOptimisticReport,
         );
 
-        if (assigneeChatReportMetadata?.isOptimisticReport && assigneeChatReport.pendingFields?.createChat !== CONST.RED_BRICK_ROAD_PENDING_ACTION.ADD) {
+        if (isOptimisticReport && assigneeChatReport.pendingFields?.createChat !== CONST.RED_BRICK_ROAD_PENDING_ACTION.ADD) {
             // BE will send a different participant. We clear the optimistic one to avoid duplicated entries
             successReport.participants = {[assigneeAccountID]: null};
         }
@@ -851,9 +857,11 @@ function setAssigneeValue(
     chatReport?: OnyxEntry<OnyxTypes.Report>,
     isCurrentUser = false,
     skipShareDestination = false,
+    reportMetadataCollection?: OnyxCollection<OnyxTypes.ReportMetadata>,
 ): {report: OnyxEntry<OnyxTypes.Report> | undefined; isOptimisticReport: boolean} {
     let report: OnyxEntry<OnyxTypes.Report> | undefined = chatReport;
     let reportMetadata: OnyxEntry<OnyxTypes.ReportMetadata> | undefined;
+    let isNewOptimisticReport = false;
     if (isCurrentUser) {
         const selfDMReportID = ReportUtils.findSelfDMReportID();
         // If there is no share destination set, automatically set it to the assignee chat report
@@ -869,8 +877,9 @@ function setAssigneeValue(
         // If chat report is still not found we need to build new optimistic chat report
         if (!report) {
             report = setNewOptimisticAssignee(currentUserAccountID, assigneePersonalDetails).assigneeReport;
+            isNewOptimisticReport = true;
         }
-        reportMetadata = ReportUtils.getReportMetadata(report?.reportID);
+        reportMetadata = report?.reportID ? reportMetadataCollection?.[`${ONYXKEYS.COLLECTION.REPORT_METADATA}${report.reportID}`] : undefined;
 
         // The optimistic field may not exist in the existing report and it can be overridden by the optimistic field of previous report data when merging the assignee chat report
         // Therefore, we should add these optimistic fields here to prevent incorrect merging, which could lead to the creation of duplicate actions for an existing report
@@ -880,7 +889,7 @@ function setAssigneeValue(
                 pendingFields: report?.pendingFields,
                 pendingAction: report?.pendingAction,
             },
-            reportMetadata ? reportMetadata.isOptimisticReport : true,
+            reportMetadata?.isOptimisticReport ?? isNewOptimisticReport,
         );
 
         // If there is no share destination set, automatically set it to the assignee chat report
@@ -893,7 +902,7 @@ function setAssigneeValue(
     // This is only needed for creation of a new task and so it should only be stored locally
     Onyx.merge(ONYXKEYS.TASK, {assignee: assigneePersonalDetails?.login ?? '', assigneeAccountID: assigneePersonalDetails.accountID});
 
-    const isOptimisticAssigneeChatReport = reportMetadata ? (reportMetadata.isOptimisticReport ?? false) : true;
+    const isOptimisticAssigneeChatReport = reportMetadata?.isOptimisticReport ?? isNewOptimisticReport;
 
     // When we're editing the assignee, we immediately call editTaskAssignee. Since setting the assignee is async,
     // the chatReport is not yet set when editTaskAssignee is called. So we return the chatReport here so that
@@ -925,7 +934,7 @@ function clearOutTaskInfoAndNavigate(
     }
     const assigneeAccountID = assigneePersonalDetails?.accountID ?? CONST.DEFAULT_NUMBER_ID;
     if (assigneePersonalDetails && assigneeAccountID > 0) {
-        setAssigneeValue(currentUserAccountID, assigneePersonalDetails, reportID, chatReport, assigneeAccountID === currentUserAccountID, skipConfirmation);
+        setAssigneeValue(currentUserAccountID, assigneePersonalDetails, reportID, chatReport, assigneeAccountID === currentUserAccountID, skipConfirmation, undefined);
     }
     Navigation.navigate(ROUTES.NEW_TASK_DETAILS.getRoute(Navigation.getReportRHPActiveRoute()));
 }

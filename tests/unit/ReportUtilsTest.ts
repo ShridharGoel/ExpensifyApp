@@ -5194,6 +5194,9 @@ describe('ReportUtils', () => {
     describe('findLastAccessedReport', () => {
         let archivedReport: Report;
         let normalReport: Report;
+        let reportMetadataCollection: OnyxCollection<ReportMetadata>;
+        const archivedLastVisitTime = '2024-02-01 04:56:47.233';
+        const normalLastVisitTime = '2024-01-01 04:56:47.233';
 
         beforeAll(async () => {
             // Set up test reports - one archived, one normal
@@ -5223,12 +5226,17 @@ describe('ReportUtils', () => {
 
             // Set up report metadata for lastVisitTime
             await Onyx.merge(`${ONYXKEYS.COLLECTION.REPORT_METADATA}${archivedReport.reportID}`, {
-                lastVisitTime: '2024-02-01 04:56:47.233', // More recent visit
+                lastVisitTime: archivedLastVisitTime, // More recent visit
             });
 
             await Onyx.merge(`${ONYXKEYS.COLLECTION.REPORT_METADATA}${normalReport.reportID}`, {
-                lastVisitTime: '2024-01-01 04:56:47.233',
+                lastVisitTime: normalLastVisitTime,
             });
+
+            reportMetadataCollection = {
+                [`${ONYXKEYS.COLLECTION.REPORT_METADATA}${archivedReport.reportID}`]: {lastVisitTime: archivedLastVisitTime},
+                [`${ONYXKEYS.COLLECTION.REPORT_METADATA}${normalReport.reportID}`]: {lastVisitTime: normalLastVisitTime},
+            };
 
             return waitForBatchedUpdates();
         });
@@ -5239,7 +5247,7 @@ describe('ReportUtils', () => {
         });
 
         it('should not return an archived report even if it was most recently accessed', () => {
-            const result = findLastAccessedReport(false);
+            const result = findLastAccessedReport(false, false, undefined, undefined, reportMetadataCollection);
 
             // Even though the archived report has a more recent lastVisitTime,
             // the function should filter it out and return the normal report
@@ -5282,7 +5290,7 @@ describe('ReportUtils', () => {
         });
 
         it('findLastAccessedReport should return owned report if no reports was accessed before', () => {
-            const result = findLastAccessedReport(false);
+            const result = findLastAccessedReport(false, false, undefined, undefined, {});
 
             // Even though the archived report has a more recent lastVisitTime,
             // the function should filter it out and return the normal report

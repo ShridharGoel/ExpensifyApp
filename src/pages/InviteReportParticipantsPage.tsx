@@ -44,6 +44,7 @@ function InviteReportParticipantsPage({report}: InviteReportParticipantsPageProp
     const styles = useThemeStyles();
     const {translate, formatPhoneNumber} = useLocalize();
     const [countryCode = CONST.DEFAULT_COUNTRY_CODE] = useOnyx(ONYXKEYS.COUNTRY_CODE, {canBeMissing: false});
+    const [reportMetadata] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT_METADATA}${report.reportID}`, {canBeMissing: true});
     const [didScreenTransitionEnd, setDidScreenTransitionEnd] = useState(false);
 
     // Any existing participants and Expensify emails should not be eligible for invitation
@@ -51,13 +52,13 @@ function InviteReportParticipantsPage({report}: InviteReportParticipantsPageProp
         const res = {
             ...CONST.EXPENSIFY_EMAILS_OBJECT,
         };
-        const participantsAccountIDs = getParticipantsAccountIDsForDisplay(report, false, true);
+        const participantsAccountIDs = getParticipantsAccountIDsForDisplay(report, false, true, false, reportMetadata);
         const loginsByAccountIDs = getLoginsByAccountIDs(participantsAccountIDs);
         for (const login of loginsByAccountIDs) {
             res[login] = true;
         }
         return res;
-    }, [report]);
+    }, [report, reportMetadata]);
 
     const {searchTerm, debouncedSearchTerm, setSearchTerm, availableOptions, selectedOptions, selectedOptionsForDisplay, toggleSelection, areOptionsInitialized, onListEndReached} =
         useSearchSelector({
@@ -126,7 +127,7 @@ function InviteReportParticipantsPage({report}: InviteReportParticipantsPageProp
     const validate = useCallback(() => selectedOptions.length > 0, [selectedOptions.length]);
 
     const reportID = report.reportID;
-    const reportName = useMemo(() => getGroupChatName(formatPhoneNumber, undefined, true, report), [formatPhoneNumber, report]);
+    const reportName = useMemo(() => getGroupChatName(formatPhoneNumber, undefined, true, report, reportMetadata), [formatPhoneNumber, report, reportMetadata]);
 
     const goBack = useCallback(() => {
         Navigation.goBack(ROUTES.REPORT_PARTICIPANTS.getRoute(reportID, route.params.backTo));
@@ -145,9 +146,9 @@ function InviteReportParticipantsPage({report}: InviteReportParticipantsPageProp
             }
             invitedEmailsToAccountIDs[login] = accountID;
         }
-        inviteToGroupChat(reportID, invitedEmailsToAccountIDs, formatPhoneNumber);
+        inviteToGroupChat(reportID, invitedEmailsToAccountIDs, formatPhoneNumber, reportMetadata);
         goBack();
-    }, [selectedOptions, goBack, reportID, validate, formatPhoneNumber]);
+    }, [selectedOptions, goBack, reportID, validate, formatPhoneNumber, reportMetadata]);
 
     const headerMessage = useMemo(() => {
         const processedLogin = debouncedSearchTerm.trim().toLowerCase();
