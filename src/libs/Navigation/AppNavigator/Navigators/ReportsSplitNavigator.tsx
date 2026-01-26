@@ -9,7 +9,9 @@ import shouldOpenOnAdminRoom from '@libs/Navigation/helpers/shouldOpenOnAdminRoo
 import type {PlatformStackScreenProps} from '@libs/Navigation/PlatformStackNavigation/types';
 import type {AuthScreensParamList, ReportsSplitNavigatorParamList} from '@libs/Navigation/types';
 import * as ReportUtils from '@libs/ReportUtils';
+import useOnyx from '@hooks/useOnyx';
 import CONST from '@src/CONST';
+import ONYXKEYS from '@src/ONYXKEYS';
 import type NAVIGATORS from '@src/NAVIGATORS';
 import ROUTES from '@src/ROUTES';
 import SCREENS from '@src/SCREENS';
@@ -26,6 +28,7 @@ const Split = createSplitNavigator<ReportsSplitNavigatorParamList>();
 function ReportsSplitNavigator({route}: PlatformStackScreenProps<AuthScreensParamList, typeof NAVIGATORS.REPORTS_SPLIT_NAVIGATOR>) {
     const {isBetaEnabled} = usePermissions();
     const splitNavigatorScreenOptions = useSplitNavigatorScreenOptions();
+    const [reportMetadata] = useOnyx(ONYXKEYS.COLLECTION.REPORT_METADATA);
 
     const [initialReportID] = useState(() => {
         const currentURL = getCurrentUrl();
@@ -43,7 +46,7 @@ function ReportsSplitNavigator({route}: PlatformStackScreenProps<AuthScreensPara
             return '';
         }
 
-        const initialReport = ReportUtils.findLastAccessedReport(!isBetaEnabled(CONST.BETAS.DEFAULT_ROOMS), shouldOpenOnAdminRoom());
+        const initialReport = ReportUtils.findLastAccessedReport(!isBetaEnabled(CONST.BETAS.DEFAULT_ROOMS), reportMetadata ?? {}, shouldOpenOnAdminRoom());
         // eslint-disable-next-line rulesdir/no-default-id-values
         return initialReport?.reportID ?? '';
     });

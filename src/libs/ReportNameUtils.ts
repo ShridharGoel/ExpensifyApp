@@ -193,13 +193,14 @@ function getGroupChatName(
     shouldApplyLimit = false,
     report?: OnyxEntry<Report>,
     reportMetadataParam?: OnyxEntry<ReportMetadata>,
+    reportMetadataCollection?: OnyxCollection<ReportMetadata>,
 ): string | undefined {
     // If we have a report always try to get the name from the report.
     if (report?.reportName) {
         return report.reportName;
     }
 
-    const reportMetadata = reportMetadataParam ?? getReportMetadata(report?.reportID);
+    const reportMetadata = reportMetadataParam ?? getReportMetadata(report?.reportID, reportMetadataCollection ?? {});
 
     const pendingMemberAccountIDs = new Set(
         reportMetadata?.pendingChatMembers?.filter((member) => member.pendingAction === CONST.RED_BRICK_ROAD_PENDING_ACTION.DELETE).map((member) => member.accountID),
@@ -657,6 +658,7 @@ function computeReportName(
     reportActions?: OnyxCollection<ReportActions>,
     currentUserAccountID?: number,
     privateIsArchived?: string,
+    reportMetadataCollection?: OnyxCollection<ReportMetadata>,
 ): string {
     if (!report || !report.reportID) {
         return '';
@@ -694,7 +696,7 @@ function computeReportName(
     }
 
     if (isGroupChat(report)) {
-        return getGroupChatName(formatPhoneNumberPhoneUtils, undefined, true, report) ?? '';
+        return getGroupChatName(formatPhoneNumberPhoneUtils, undefined, true, report, undefined, reportMetadataCollection) ?? '';
     }
 
     let formattedName: string | undefined;

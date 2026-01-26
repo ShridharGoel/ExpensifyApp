@@ -188,6 +188,7 @@ function ReportDetailsPage({policy, report, route, reportMetadata}: ReportDetail
     const [introSelected] = useOnyx(ONYXKEYS.NVP_INTRO_SELECTED, {canBeMissing: true});
     const [allTransactionDrafts] = useOnyx(ONYXKEYS.COLLECTION.TRANSACTION_DRAFT, {canBeMissing: true});
     const [allTransactionViolations] = useOnyx(ONYXKEYS.COLLECTION.TRANSACTION_VIOLATIONS, {canBeMissing: true});
+    const [allReportMetadata] = useOnyx(ONYXKEYS.COLLECTION.REPORT_METADATA, {canBeMissing: true});
     const currentUserPersonalDetails = useCurrentUserPersonalDetails();
     const [isLastMemberLeavingGroupModalVisible, setIsLastMemberLeavingGroupModalVisible] = useState(false);
     const [isDeleteModalVisible, setIsDeleteModalVisible] = useState(false);
@@ -858,7 +859,7 @@ function ReportDetailsPage({policy, report, route, reportMetadata}: ReportDetail
 
     const deleteTransaction = useCallback(() => {
         if (caseID === CASES.DEFAULT) {
-            deleteTask(report, parentReport, isReportArchived, currentUserPersonalDetails.accountID, hasOutstandingChildTask, parentReportAction, ancestors);
+            deleteTask(report, parentReport, isReportArchived, currentUserPersonalDetails.accountID, hasOutstandingChildTask, parentReportAction, allReportMetadata ?? {}, ancestors);
             return;
         }
 

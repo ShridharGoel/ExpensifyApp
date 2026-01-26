@@ -68,6 +68,7 @@ function WorkspaceInviteMessageComponent({
     const {translate, formatPhoneNumber} = useLocalize();
     const [formData, formDataResult] = useOnyx(ONYXKEYS.FORMS.WORKSPACE_INVITE_MESSAGE_FORM_DRAFT, {canBeMissing: true});
     const [allPersonalDetails] = useOnyx(ONYXKEYS.PERSONAL_DETAILS_LIST, {canBeMissing: false});
+    const [allReportMetadata] = useOnyx(ONYXKEYS.COLLECTION.REPORT_METADATA, {canBeMissing: true});
 
     const viewportOffsetTop = useViewportOffsetTop();
     const [welcomeNote, setWelcomeNote] = useState<string>();
@@ -138,7 +139,15 @@ function WorkspaceInviteMessageComponent({
         const policyMemberAccountIDs = Object.values(getMemberAccountIDsForWorkspace(policy?.employeeList, false, false));
         // Please see https://github.com/Expensify/App/blob/main/README.md#Security for more details
         // See https://github.com/Expensify/App/blob/main/README.md#workspace, we set conditions about who can leave the workspace
-        addMembersToWorkspace(invitedEmailsToAccountIDsDraft ?? {}, `${welcomeNoteSubject}\n\n${welcomeNote}`, policyID, policyMemberAccountIDs, workspaceInviteRoleDraft, formatPhoneNumber);
+        addMembersToWorkspace(
+            invitedEmailsToAccountIDsDraft ?? {},
+            `${welcomeNoteSubject}\n\n${welcomeNote}`,
+            policyID,
+            policyMemberAccountIDs,
+            workspaceInviteRoleDraft,
+            formatPhoneNumber,
+            allReportMetadata ?? {},
+        );
         setWorkspaceInviteMessageDraft(policyID, welcomeNote ?? null);
         clearDraftValues(ONYXKEYS.FORMS.WORKSPACE_INVITE_MESSAGE_FORM);
 

@@ -27,7 +27,7 @@ import NAVIGATORS from '@src/NAVIGATORS';
 import ONYXKEYS from '@src/ONYXKEYS';
 import type {Route} from '@src/ROUTES';
 import ROUTES from '@src/ROUTES';
-import type {Account, Report} from '@src/types/onyx';
+import type {Account, Report, ReportMetadata} from '@src/types/onyx';
 import {doneCheckingPublicRoom, navigateToConciergeChat, openReport} from './Report';
 import {canAnonymousUserAccessRoute, isAnonymousUser, signOutAndRedirectToSignIn, waitForUserSignIn} from './Session';
 import {isOnboardingFlowCompleted, setOnboardingErrorMessage} from './Welcome';
@@ -266,6 +266,7 @@ function openReportFromDeepLink(
     currentOnboardingCompanySize: OnyxEntry<OnboardingCompanySize>,
     onboardingInitialPath: OnyxEntry<string>,
     reports: OnyxCollection<Report>,
+    reportMetadata: OnyxCollection<ReportMetadata>,
     isAuthenticated: boolean,
 ) {
     const reportID = getReportIDFromLink(url);
@@ -352,7 +353,8 @@ function openReportFromDeepLink(
                                 const report = reportParam ?? reports?.[`${ONYXKEYS.COLLECTION.REPORT}${reportID}`];
                                 // If the report does not exist, navigate to the last accessed report or Concierge chat
                                 if (reportID && (!report?.reportID || report.errorFields?.notFound)) {
-                                    const lastAccessedReportID = findLastAccessedReport(false, shouldOpenOnAdminRoom(), undefined, reportID)?.reportID;
+                                    const lastAccessedReport = findLastAccessedReport(false, reportMetadata ?? {}, shouldOpenOnAdminRoom(), undefined, reportID);
+                                    const lastAccessedReportID = lastAccessedReport?.reportID;
                                     if (lastAccessedReportID) {
                                         const lastAccessedReportRoute = ROUTES.REPORT_WITH_ID.getRoute(lastAccessedReportID);
                                         Navigation.navigate(lastAccessedReportRoute, {forceReplace: Navigation.getTopmostReportId() === reportID});

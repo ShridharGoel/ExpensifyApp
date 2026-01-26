@@ -3,7 +3,9 @@ import ROUTES from '@src/ROUTES';
 import {setDisableDismissOnEscape} from './actions/Modal';
 import shouldOpenOnAdminRoom from './Navigation/helpers/shouldOpenOnAdminRoom';
 import Navigation from './Navigation/Navigation';
+import type {OnyxCollection} from 'react-native-onyx';
 import {findLastAccessedReport, isConciergeChatReport, isSelfDM} from './ReportUtils';
+import type {ReportMetadata} from '@src/types/onyx';
 
 /**
  * Determines the report ID to navigate to after onboarding for control variant or ineligible users.
@@ -12,6 +14,7 @@ import {findLastAccessedReport, isConciergeChatReport, isSelfDM} from './ReportU
  */
 function getReportIDAfterOnboarding(
     isSmallScreenWidth: boolean,
+    reportMetadata: OnyxCollection<ReportMetadata>,
     canUseDefaultRooms: boolean | undefined,
     onboardingPolicyID?: string,
     onboardingAdminsChatReportID?: string,
@@ -27,7 +30,7 @@ function getReportIDAfterOnboarding(
         return undefined;
     }
 
-    const lastAccessedReport = findLastAccessedReport(!canUseDefaultRooms, shouldOpenOnAdminRoom() && !shouldPreventOpenAdminRoom);
+    const lastAccessedReport = findLastAccessedReport(!canUseDefaultRooms, reportMetadata ?? {}, shouldOpenOnAdminRoom() && !shouldPreventOpenAdminRoom);
     const lastAccessedReportID = lastAccessedReport?.reportID;
 
     // When the user goes through the onboarding flow, a workspace can be created if the user selects specific options. The user should be taken to the #admins room for that workspace because it is the most natural place for them to start their experience in the app.
@@ -41,6 +44,7 @@ function getReportIDAfterOnboarding(
 
 function navigateAfterOnboarding(
     isSmallScreenWidth: boolean,
+    reportMetadata: OnyxCollection<ReportMetadata>,
     canUseDefaultRooms: boolean | undefined,
     onboardingPolicyID?: string,
     onboardingAdminsChatReportID?: string,
@@ -53,7 +57,7 @@ function navigateAfterOnboarding(
         return;
     }
 
-    const reportID = getReportIDAfterOnboarding(isSmallScreenWidth, canUseDefaultRooms, onboardingPolicyID, onboardingAdminsChatReportID, shouldPreventOpenAdminRoom);
+    const reportID = getReportIDAfterOnboarding(isSmallScreenWidth, reportMetadata, canUseDefaultRooms, onboardingPolicyID, onboardingAdminsChatReportID, shouldPreventOpenAdminRoom);
     if (reportID) {
         Navigation.navigate(ROUTES.REPORT_WITH_ID.getRoute(reportID));
     }
@@ -74,6 +78,7 @@ function navigateAfterOnboarding(
 
 function navigateAfterOnboardingWithMicrotaskQueue(
     isSmallScreenWidth: boolean,
+    reportMetadata: OnyxCollection<ReportMetadata>,
     canUseDefaultRooms: boolean | undefined,
     onboardingPolicyID?: string,
     onboardingAdminsChatReportID?: string,
@@ -81,7 +86,7 @@ function navigateAfterOnboardingWithMicrotaskQueue(
 ) {
     Navigation.dismissModal();
     Navigation.setNavigationActionToMicrotaskQueue(() => {
-        navigateAfterOnboarding(isSmallScreenWidth, canUseDefaultRooms, onboardingPolicyID, onboardingAdminsChatReportID, shouldPreventOpenAdminRoom);
+        navigateAfterOnboarding(isSmallScreenWidth, reportMetadata, canUseDefaultRooms, onboardingPolicyID, onboardingAdminsChatReportID, shouldPreventOpenAdminRoom);
     });
 }
 

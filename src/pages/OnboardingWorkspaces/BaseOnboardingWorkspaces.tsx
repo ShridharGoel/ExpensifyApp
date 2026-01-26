@@ -55,6 +55,7 @@ function BaseOnboardingWorkspaces({route, shouldUseNativeStyles}: BaseOnboarding
     const {isBetaEnabled} = usePermissions();
 
     const [onboardingValues] = useOnyx(ONYXKEYS.NVP_ONBOARDING, {canBeMissing: true});
+    const [reportMetadata] = useOnyx(ONYXKEYS.COLLECTION.REPORT_METADATA);
     const isVsb = onboardingValues?.signupQualifier === CONST.ONBOARDING_SIGNUP_QUALIFIERS.VSB;
     const isSmb = onboardingValues?.signupQualifier === CONST.ONBOARDING_SIGNUP_QUALIFIERS.SMB;
 
@@ -76,9 +77,14 @@ function BaseOnboardingWorkspaces({route, shouldUseNativeStyles}: BaseOnboarding
             setOnboardingAdminsChatReportID();
             setOnboardingPolicyID(policy.policyID);
 
-            navigateAfterOnboardingWithMicrotaskQueue(isSmallScreenWidth, isBetaEnabled(CONST.BETAS.DEFAULT_ROOMS), policy.automaticJoiningEnabled ? policy.policyID : undefined);
+            navigateAfterOnboardingWithMicrotaskQueue(
+                isSmallScreenWidth,
+                reportMetadata ?? {},
+                isBetaEnabled(CONST.BETAS.DEFAULT_ROOMS),
+                policy.automaticJoiningEnabled ? policy.policyID : undefined,
+            );
         },
-        [onboardingMessages, onboardingPersonalDetails?.firstName, onboardingPersonalDetails?.lastName, isSmallScreenWidth, isBetaEnabled, onboardingCompanySize],
+        [onboardingMessages, onboardingPersonalDetails?.firstName, onboardingPersonalDetails?.lastName, isSmallScreenWidth, isBetaEnabled, onboardingCompanySize, reportMetadata],
     );
 
     const policyIDItems = useMemo(() => {

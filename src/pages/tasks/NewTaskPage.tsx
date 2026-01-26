@@ -35,6 +35,7 @@ function NewTaskPage({route}: NewTaskPageProps) {
     const [reports] = useOnyx(ONYXKEYS.COLLECTION.REPORT, {canBeMissing: true});
     const [personalDetails] = useOnyx(ONYXKEYS.PERSONAL_DETAILS_LIST, {canBeMissing: false});
     const [quickAction] = useOnyx(ONYXKEYS.NVP_QUICK_ACTION_GLOBAL_CREATE, {canBeMissing: true});
+    const [allReportMetadata] = useOnyx(ONYXKEYS.COLLECTION.REPORT_METADATA, {canBeMissing: true});
     const currentUserPersonalDetails = useCurrentUserPersonalDetails();
     const styles = useThemeStyles();
     const {translate, formatPhoneNumber, localeCompare} = useLocalize();
@@ -109,6 +110,7 @@ function NewTaskPage({route}: NewTaskPageProps) {
             isCreatedUsingMarkdown: false,
             quickAction,
             ancestors,
+            reportMetadata: allReportMetadata ?? {},
         });
     };
 

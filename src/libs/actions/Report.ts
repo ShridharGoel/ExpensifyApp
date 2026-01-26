@@ -3421,8 +3421,8 @@ function navigateToConciergeChatAndDeleteReport(reportID: string | undefined, sh
     });
 }
 
-function clearCreateChatError(report: OnyxEntry<Report>) {
-    const metaData = getReportMetadata(report?.reportID);
+function clearCreateChatError(report: OnyxEntry<Report>, reportMetadata: OnyxCollection<ReportMetadata>) {
+    const metaData = getReportMetadata(report?.reportID, reportMetadata ?? {});
     const isOptimisticReport = metaData?.isOptimisticReport;
     if (report?.errorFields?.createChat && !isOptimisticReport) {
         clearReportFieldKeyErrors(report.reportID, 'createChat');
@@ -3766,8 +3766,8 @@ function getCurrentUserAccountID(): number {
     return deprecatedCurrentUserAccountID;
 }
 
-function navigateToMostRecentReport(currentReport: OnyxEntry<Report>) {
-    const lastAccessedReportID = findLastAccessedReport(false, false, undefined, currentReport?.reportID)?.reportID;
+function navigateToMostRecentReport(currentReport: OnyxEntry<Report>, reportMetadata: OnyxCollection<ReportMetadata>) {
+    const lastAccessedReportID = findLastAccessedReport(false, reportMetadata ?? {}, false, undefined, currentReport?.reportID)?.reportID;
 
     if (lastAccessedReportID) {
         // Check if route exists for super wide RHP vs regular full screen report
@@ -3791,8 +3791,8 @@ function navigateToMostRecentReport(currentReport: OnyxEntry<Report>) {
     }
 }
 
-function getMostRecentReportID(currentReport: OnyxEntry<Report>) {
-    const lastAccessedReportID = findLastAccessedReport(false, false, undefined, currentReport?.reportID)?.reportID;
+function getMostRecentReportID(currentReport: OnyxEntry<Report>, reportMetadata: OnyxCollection<ReportMetadata>) {
+    const lastAccessedReportID = findLastAccessedReport(false, reportMetadata ?? {}, false, undefined, currentReport?.reportID)?.reportID;
     return lastAccessedReportID ?? conciergeReportID;
 }
 

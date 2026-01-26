@@ -28,7 +28,7 @@ import * as ReportUtils from '@libs/ReportUtils';
 import * as FormActions from '@userActions/FormActions';
 import CONST from '@src/CONST';
 import ONYXKEYS from '@src/ONYXKEYS';
-import type {ImportedSpreadsheetMemberData, InvitedEmailsToAccountIDs, Policy, PolicyEmployee, PolicyOwnershipChangeChecks, Report, ReportAction, ReportActions} from '@src/types/onyx';
+import type {ImportedSpreadsheetMemberData, InvitedEmailsToAccountIDs, Policy, PolicyEmployee, PolicyOwnershipChangeChecks, Report, ReportAction, ReportActions, ReportMetadata} from '@src/types/onyx';
 import type {PendingAction} from '@src/types/onyx/OnyxCommon';
 import type {JoinWorkspaceResolution} from '@src/types/onyx/OriginalMessage';
 import type {ApprovalRule} from '@src/types/onyx/Policy';
@@ -102,9 +102,10 @@ function buildRoomMembersOnyxData(
     roomType: typeof CONST.REPORT.CHAT_TYPE.POLICY_ANNOUNCE | typeof CONST.REPORT.CHAT_TYPE.POLICY_ADMINS,
     policyID: string,
     accountIDs: number[],
+    reportMetadataCollection: OnyxCollection<ReportMetadata>,
 ): OnyxData<typeof ONYXKEYS.COLLECTION.REPORT_METADATA | typeof ONYXKEYS.COLLECTION.REPORT> {
     const report = ReportUtils.getRoom(roomType, policyID);
-    const reportMetadata = ReportUtils.getReportMetadata(report?.reportID);
+    const reportMetadata = ReportUtils.getReportMetadata(report?.reportID, reportMetadataCollection ?? {});
     const roomMembers: OnyxData<typeof ONYXKEYS.COLLECTION.REPORT_METADATA | typeof ONYXKEYS.COLLECTION.REPORT> = {
         optimisticData: [],
         failureData: [],
@@ -225,6 +226,7 @@ function removeOptimisticRoomMembers(
     roomType: typeof CONST.REPORT.CHAT_TYPE.POLICY_ANNOUNCE | typeof CONST.REPORT.CHAT_TYPE.POLICY_ADMINS,
     policyID: string | undefined,
     accountIDs: number[],
+    reportMetadataCollection: OnyxCollection<ReportMetadata>,
 ): OnyxData<typeof ONYXKEYS.COLLECTION.REPORT_METADATA> {
     const roomMembers: OnyxData<typeof ONYXKEYS.COLLECTION.REPORT_METADATA> = {
         optimisticData: [],
@@ -237,7 +239,7 @@ function removeOptimisticRoomMembers(
     }
 
     const report = ReportUtils.getRoom(roomType, policyID);
-    const reportMetadata = ReportUtils.getReportMetadata(report?.reportID);
+    const reportMetadata = ReportUtils.getReportMetadata(report?.reportID, reportMetadataCollection ?? {});
 
     if (!report) {
         return roomMembers;
@@ -364,7 +366,7 @@ function resetAccountingPreferredExporter(policy: OnyxEntry<Policy>, loginList: 
  * Remove the passed members from the policy employeeList
  * Please see https://github.com/Expensify/App/blob/main/README.md#Security for more details
  */
-function removeMembers(policyID: string, selectedMemberEmails: string[], policyMemberEmailsToAccountIDs: Record<string, number>) {
+function removeMembers(policyID: string, selectedMemberEmails: string[], policyMemberEmailsToAccountIDs: Record<string, number>, reportMetadata: OnyxCollection<ReportMetadata>) {
     if (selectedMemberEmails.length === 0) {
         return;
     }
@@ -382,7 +384,7 @@ function removeMembers(policyID: string, selectedMemberEmails: string[], policyM
     //     ReportUtils.buildOptimisticClosedReportAction(currentUserEmail, policy?.name ?? '', CONST.REPORT.ARCHIVE_REASON.REMOVED_FROM_POLICY),
     // );
 
-    const announceRoomMembers = removeOptimisticRoomMembers(CONST.REPORT.CHAT_TYPE.POLICY_ANNOUNCE, policy?.id, accountIDs);
+    const announceRoomMembers = removeOptimisticRoomMembers(CONST.REPORT.CHAT_TYPE.POLICY_ANNOUNCE, policy?.id, accountIDs, reportMetadata ?? {});
     const adminRoomMembers = removeOptimisticRoomMembers(
         CONST.REPORT.CHAT_TYPE.POLICY_ADMINS,
         policy?.id,
@@ -392,6 +394,7 @@ function removeMembers(policyID: string, selectedMemberEmails: string[], policyM
                 return role === CONST.POLICY.ROLE.ADMIN || role === CONST.POLICY.ROLE.AUDITOR;
             })
             .map((login) => policyMemberEmailsToAccountIDs[login]),
+        reportMetadata ?? {},
     );
     const preferredExporterOnyxData = resetAccountingPreferredExporter(policy, selectedMemberEmails);
 
@@ -877,6 +880,7 @@ function buildAddMembersToWorkspaceOnyxData(
     policyMemberAccountIDs: number[],
     role: string,
     formatPhoneNumber: LocaleContextProps['formatPhoneNumber'],
+    reportMetadata: OnyxCollection<ReportMetadata>,
     policyExpenseChatNotificationPreference?: NotificationPreference,
 ) {
     const logins = Object.keys(invitedEmailsToAccountIDs).map((memberLogin) => PhoneNumber.addSMSDomainIfPhoneNumber(memberLogin));
@@ -887,11 +891,12 @@ function buildAddMembersToWorkspaceOnyxData(
     const {newAccountIDs, newLogins} = PersonalDetailsUtils.getNewAccountIDsAndLogins(logins, accountIDs);
     const newPersonalDetailsOnyxData = PersonalDetailsUtils.getPersonalDetailsOnyxDataForOptimisticUsers(newLogins, newAccountIDs, formatPhoneNumber);
 
-    const announceRoomMembers = buildRoomMembersOnyxData(CONST.REPORT.CHAT_TYPE.POLICY_ANNOUNCE, policyID, accountIDs);
+    const announceRoomMembers = buildRoomMembersOnyxData(CONST.REPORT.CHAT_TYPE.POLICY_ANNOUNCE, policyID, accountIDs, reportMetadata ?? {});
     const adminRoomMembers = buildRoomMembersOnyxData(
         CONST.REPORT.CHAT_TYPE.POLICY_ADMINS,
         policyID,
         role === CONST.POLICY.ROLE.ADMIN || role === CONST.POLICY.ROLE.AUDITOR ? accountIDs : [],
+        reportMetadata ?? {},
     );
     const optimisticAnnounceChat = ReportUtils.buildOptimisticAnnounceChat(policyID, [...policyMemberAccountIDs, ...accountIDs]);
     const announceRoomChat = optimisticAnnounceChat.announceChatData;
@@ -980,6 +985,7 @@ function addMembersToWorkspace(
     policyMemberAccountIDs: number[],
     role: string,
     formatPhoneNumber: LocaleContextProps['formatPhoneNumber'],
+    reportMetadata: OnyxCollection<ReportMetadata>,
 ) {
     const {optimisticData, successData, failureData, optimisticAnnounceChat, membersChats, logins} = buildAddMembersToWorkspaceOnyxData(
         invitedEmailsToAccountIDs,
@@ -987,6 +993,7 @@ function addMembersToWorkspace(
         policyMemberAccountIDs,
         role,
         formatPhoneNumber,
+        reportMetadata,
     );
 
     const params: AddMembersToWorkspaceParams = {

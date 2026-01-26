@@ -40,6 +40,7 @@ function BaseOnboardingWorkspaceOptional({shouldUseNativeStyles}: BaseOnboarding
     const [onboardingAdminsChatReportID] = useOnyx(ONYXKEYS.ONBOARDING_ADMINS_CHAT_REPORT_ID, {canBeMissing: true});
     const [conciergeChatReportID] = useOnyx(ONYXKEYS.CONCIERGE_REPORT_ID, {canBeMissing: true});
     const {onboardingMessages} = useOnboardingMessages();
+    const [reportMetadata] = useOnyx(ONYXKEYS.COLLECTION.REPORT_METADATA);
     const {isRestrictedPolicyCreation} = usePreferredPolicy();
     // When we merge public email with work email, we now want to navigate to the
     // concierge chat report of the new work email and not the last accessed report.
@@ -91,7 +92,7 @@ function BaseOnboardingWorkspaceOptional({shouldUseNativeStyles}: BaseOnboarding
         setOnboardingAdminsChatReportID();
         setOnboardingPolicyID();
 
-        navigateAfterOnboardingWithMicrotaskQueue(isSmallScreenWidth, isBetaEnabled(CONST.BETAS.DEFAULT_ROOMS), onboardingPolicyID, mergedAccountConciergeReportID);
+        navigateAfterOnboardingWithMicrotaskQueue(isSmallScreenWidth, reportMetadata ?? {}, isBetaEnabled(CONST.BETAS.DEFAULT_ROOMS), onboardingPolicyID, mergedAccountConciergeReportID);
     }, [
         onboardingPurposeSelected,
         currentUserPersonalDetails.firstName,
@@ -102,6 +103,7 @@ function BaseOnboardingWorkspaceOptional({shouldUseNativeStyles}: BaseOnboarding
         isSmallScreenWidth,
         isBetaEnabled,
         mergedAccountConciergeReportID,
+        reportMetadata,
     ]);
 
     return (

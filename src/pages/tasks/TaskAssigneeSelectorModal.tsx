@@ -46,6 +46,7 @@ function TaskAssigneeSelectorModal() {
     const [countryCode = CONST.DEFAULT_COUNTRY_CODE] = useOnyx(ONYXKEYS.COUNTRY_CODE, {canBeMissing: false});
     const currentUserPersonalDetails = useCurrentUserPersonalDetails();
     const [loginList] = useOnyx(ONYXKEYS.LOGIN_LIST, {canBeMissing: true});
+    const [allReportMetadata] = useOnyx(ONYXKEYS.COLLECTION.REPORT_METADATA, {canBeMissing: true});
 
     const {searchTerm, debouncedSearchTerm, setSearchTerm, availableOptions, areOptionsInitialized} = useSearchSelector({
         selectionMode: CONST.SEARCH_SELECTOR.SELECTION_MODE_SINGLE,
@@ -170,6 +171,7 @@ function TaskAssigneeSelectorModal() {
                         assigneePersonalDetails,
                         report.reportID,
                         undefined, // passing null as report because for editing task the report will be task details report page not the actual report where task was created
+                        allReportMetadata ?? {},
                         isCurrentUser({...option, accountID: option?.accountID ?? CONST.DEFAULT_NUMBER_ID, login: option?.login ?? ''}, loginList),
                     );
                     // Pass through the selected assignee
@@ -180,6 +182,7 @@ function TaskAssigneeSelectorModal() {
                         option?.login ?? '',
                         currentUserPersonalDetails.accountID,
                         hasOutstandingChildTask,
+                        allReportMetadata ?? {},
                         option?.accountID,
                         assigneeChatReport,
                         isOptimisticReport,
@@ -196,6 +199,7 @@ function TaskAssigneeSelectorModal() {
                     assigneePersonalDetails,
                     task?.shareDestination ?? '',
                     undefined, // passing null as report is null in this condition
+                    allReportMetadata ?? {},
                     isCurrentUser({...option, accountID: option?.accountID ?? CONST.DEFAULT_NUMBER_ID, login: option?.login ?? undefined}, loginList),
                 );
                 // eslint-disable-next-line @typescript-eslint/no-deprecated

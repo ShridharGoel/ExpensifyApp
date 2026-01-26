@@ -103,6 +103,7 @@ function ReportFooter({
 
     const [shouldShowComposeInput = false] = useOnyx(ONYXKEYS.SHOULD_SHOW_COMPOSE_INPUT, {canBeMissing: true});
     const [quickAction] = useOnyx(ONYXKEYS.NVP_QUICK_ACTION_GLOBAL_CREATE, {canBeMissing: true});
+    const [allReportMetadata] = useOnyx(ONYXKEYS.COLLECTION.REPORT_METADATA, {canBeMissing: true});
     const isAnonymousUser = useIsAnonymousUser();
     const [isBlockedFromChat] = useOnyx(ONYXKEYS.NVP_BLOCKED_FROM_CHAT, {
         selector: isBlockedFromChatSelector,
@@ -177,6 +178,7 @@ function ReportFooter({
                 isCreatedUsingMarkdown: true,
                 quickAction,
                 ancestors,
+                reportMetadata: allReportMetadata ?? {},
             });
             return true;
         },

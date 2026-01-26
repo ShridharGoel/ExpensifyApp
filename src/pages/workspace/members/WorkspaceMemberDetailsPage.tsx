@@ -88,6 +88,7 @@ function WorkspaceMemberDetailsPage({personalDetails, policy, route}: WorkspaceM
     const [customCardNames] = useOnyx(ONYXKEYS.NVP_EXPENSIFY_COMPANY_CARDS_CUSTOM_NAMES, {canBeMissing: true});
     const [fundList] = useOnyx(ONYXKEYS.FUND_LIST, {canBeMissing: true});
     const expensifyCardSettings = useExpensifyCardFeeds(policyID);
+    const [allReportMetadata] = useOnyx(ONYXKEYS.COLLECTION.REPORT_METADATA, {canBeMissing: true});
 
     const [isRemoveMemberConfirmModalVisible, setIsRemoveMemberConfirmModalVisible] = useState(false);
 
@@ -180,7 +181,7 @@ function WorkspaceMemberDetailsPage({personalDetails, policy, route}: WorkspaceM
 
     // Function to remove a member and close the modal
     const removeMemberAndCloseModal = () => {
-        removeMembers(policyID, [memberLogin], {[memberLogin]: accountID});
+        removeMembers(policyID, [memberLogin], {[memberLogin]: accountID}, allReportMetadata ?? {});
         const previousEmployeesCount = Object.keys(policy?.employeeList ?? {}).length;
         const remainingEmployeeCount = previousEmployeesCount - 1;
         if (remainingEmployeeCount === 1 && policy?.preventSelfApproval) {

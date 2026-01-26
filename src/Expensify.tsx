@@ -121,6 +121,7 @@ function Expensify() {
     const [currentOnboardingCompanySize] = useOnyx(ONYXKEYS.ONBOARDING_COMPANY_SIZE, {canBeMissing: true});
     const [onboardingInitialPath] = useOnyx(ONYXKEYS.ONBOARDING_LAST_VISITED_PATH, {canBeMissing: true});
     const [allReports] = useOnyx(ONYXKEYS.COLLECTION.REPORT, {canBeMissing: false});
+    const [allReportMetadata] = useOnyx(ONYXKEYS.COLLECTION.REPORT_METADATA, {canBeMissing: true});
     const [hasLoadedApp] = useOnyx(ONYXKEYS.HAS_LOADED_APP, {canBeMissing: true});
     const [isLoadingApp] = useOnyx(ONYXKEYS.IS_LOADING_APP, {canBeMissing: true});
     const {isOffline} = useNetwork();
@@ -296,7 +297,7 @@ function Expensify() {
         Linking.getInitialURL().then((url) => {
             setInitialUrl(url as Route);
             if (url) {
-                openReportFromDeepLink(url, currentOnboardingPurposeSelected, currentOnboardingCompanySize, onboardingInitialPath, allReports, isAuthenticated);
+                openReportFromDeepLink(url, currentOnboardingPurposeSelected, currentOnboardingCompanySize, onboardingInitialPath, allReports, allReportMetadata ?? {}, isAuthenticated);
             } else {
                 Report.doneCheckingPublicRoom();
             }
@@ -305,7 +306,7 @@ function Expensify() {
         // Open chat report from a deep link (only mobile native)
         linkingChangeListener.current = Linking.addEventListener('url', (state) => {
             const isCurrentlyAuthenticated = hasAuthToken();
-            openReportFromDeepLink(state.url, currentOnboardingPurposeSelected, currentOnboardingCompanySize, onboardingInitialPath, allReports, isCurrentlyAuthenticated);
+            openReportFromDeepLink(state.url, currentOnboardingPurposeSelected, currentOnboardingCompanySize, onboardingInitialPath, allReports, allReportMetadata ?? {}, isCurrentlyAuthenticated);
         });
         if (CONFIG.IS_HYBRID_APP) {
             HybridAppModule.onURLListenerAdded();

@@ -79,6 +79,7 @@ import {
     getPolicyIDsWithEmptyReportsForAccount,
     getReasonAndReportActionThatRequiresAttention,
     getReportIDFromLink,
+    getReportMetadata,
     getReportName as getReportNameDeprecated,
     getReportOrDraftReport,
     getReportPreviewMessage,
@@ -3447,6 +3448,40 @@ describe('ReportUtils', () => {
             const latestReport: OnyxEntry<Report> = {reportID: '1', lastReadTime: '2023-07-08 07:15:44.030'};
             expect(getMostRecentlyVisitedReport(reports, undefined)).toEqual(latestReport);
         });
+
+        it('should return the most recently visited report when metadata is provided', () => {
+            const reports: Array<OnyxEntry<Report>> = [
+                {reportID: '1', lastReadTime: '2023-07-01 07:15:44.030'},
+                {reportID: '2', lastReadTime: '2023-07-02 07:15:44.030'},
+            ];
+            const reportMetadata: OnyxCollection<ReportMetadata> = {
+                [`${ONYXKEYS.COLLECTION.REPORT_METADATA}1`]: {lastVisitTime: '2023-07-05 07:15:44.030'},
+                [`${ONYXKEYS.COLLECTION.REPORT_METADATA}2`]: {lastVisitTime: '2023-07-04 07:15:44.030'},
+            };
+            const latestReport: OnyxEntry<Report> = {reportID: '1', lastReadTime: '2023-07-01 07:15:44.030'};
+            expect(getMostRecentlyVisitedReport(reports, reportMetadata)).toEqual(latestReport);
+        });
+    });
+
+    describe('getReportMetadata', () => {
+        it('should return undefined if reportID is undefined', () => {
+            expect(getReportMetadata(undefined, {})).toBeUndefined();
+        });
+
+        it('should return metadata if found in the collection', () => {
+            const reportID = '1';
+            const metadata: ReportMetadata = {lastVisitTime: '2023-01-01'};
+            const reportMetadata: OnyxCollection<ReportMetadata> = {
+                [`${ONYXKEYS.COLLECTION.REPORT_METADATA}${reportID}`]: metadata,
+            };
+            expect(getReportMetadata(reportID, reportMetadata)).toEqual(metadata);
+        });
+
+        it('should return undefined if metadata is not found', () => {
+            const reportID = '1';
+            const reportMetadata: OnyxCollection<ReportMetadata> = {};
+            expect(getReportMetadata(reportID, reportMetadata)).toBeUndefined();
+        });
     });
 
     describe('shouldDisableThread', () => {
@@ -5248,7 +5283,14 @@ describe('ReportUtils', () => {
         });
 
         it('should not return an archived report even if it was most recently accessed', () => {
-            const result = findLastAccessedReport(false);
+            const result = findLastAccessedReport(false, {
+                [`${ONYXKEYS.COLLECTION.REPORT_METADATA}${archivedReport.reportID}`]: {
+                    lastVisitTime: '2024-02-01 04:56:47.233',
+                },
+                [`${ONYXKEYS.COLLECTION.REPORT_METADATA}${normalReport.reportID}`]: {
+                    lastVisitTime: '2024-01-01 04:56:47.233',
+                },
+            });
 
             // Even though the archived report has a more recent lastVisitTime,
             // the function should filter it out and return the normal report
@@ -5291,7 +5333,7 @@ describe('ReportUtils', () => {
         });
 
         it('findLastAccessedReport should return owned report if no reports was accessed before', () => {
-            const result = findLastAccessedReport(false);
+            const result = findLastAccessedReport(false, {});
 
             // Even though the archived report has a more recent lastVisitTime,
             // the function should filter it out and return the normal report

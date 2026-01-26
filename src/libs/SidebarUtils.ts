@@ -650,6 +650,7 @@ function getOptionData({
     movedFromReport,
     movedToReport,
     currentUserAccountID,
+    reportMetadata,
 }: {
     report: OnyxEntry<Report>;
     oneTransactionThreadReport: OnyxEntry<Report>;
@@ -669,6 +670,7 @@ function getOptionData({
     movedFromReport?: OnyxEntry<Report>;
     movedToReport?: OnyxEntry<Report>;
     currentUserAccountID: number;
+    reportMetadata: OnyxEntry<ReportMetadata>;
 }): OptionData | undefined {
     // When a user signs out, Onyx is cleared. Due to the lazy rendering with a virtual list, it's possible for
     // this method to be called after the Onyx data has been cleared out. In that case, it's fine to do
@@ -709,12 +711,12 @@ function getOptionData({
         isDeletedParentAction: false,
         isConciergeChat: false,
     };
-    const reportMetadata = getReportMetadata(report?.reportID);
-    const participantAccountIDs = getParticipantsAccountIDsForDisplay(report);
-    const participantAccountIDsExcludeCurrentUser = excludeParticipantsForDisplay(participantAccountIDs, report.participants ?? {}, reportMetadata, {shouldExcludeCurrentUser: true});
+    const metadata = reportMetadata;
+    const participantAccountIDs = getParticipantsAccountIDsForDisplay(report, undefined, undefined, undefined, metadata);
+    const participantAccountIDsExcludeCurrentUser = excludeParticipantsForDisplay(participantAccountIDs, report.participants ?? {}, metadata, {shouldExcludeCurrentUser: true});
     const participantPersonalDetailListExcludeCurrentUser = Object.values(getPersonalDetailsForAccountIDs(participantAccountIDsExcludeCurrentUser, personalDetails));
 
-    const visibleParticipantAccountIDs = excludeParticipantsForDisplay(participantAccountIDs, report.participants ?? {}, reportMetadata, {shouldExcludeHidden: true});
+    const visibleParticipantAccountIDs = excludeParticipantsForDisplay(participantAccountIDs, report.participants ?? {}, metadata, {shouldExcludeHidden: true});
 
     const participantPersonalDetailList = Object.values(getPersonalDetailsForAccountIDs(participantAccountIDs, personalDetails));
     const personalDetail = participantPersonalDetailList.at(0) ?? ({} as PersonalDetails);

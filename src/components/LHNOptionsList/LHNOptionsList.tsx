@@ -300,6 +300,7 @@ function LHNOptionsList({style, contentContainerStyles, data, onSelectRow, optio
                     lastAction={lastAction}
                     lastActionReport={lastActionReport}
                     currentUserAccountID={currentUserAccountID}
+                    reportMetadata={itemReportMetadata}
                 />
             );
         },

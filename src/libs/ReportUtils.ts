@@ -1149,27 +1149,7 @@ Onyx.connectWithoutView({
     },
 });
 
-let allReportMetadata: OnyxCollection<ReportMetadata>;
-const allReportMetadataKeyValue: Record<string, ReportMetadata> = {};
-Onyx.connectWithoutView({
-    key: ONYXKEYS.COLLECTION.REPORT_METADATA,
-    waitForCollectionCallback: true,
-    callback: (value) => {
-        if (!value) {
-            return;
-        }
-        allReportMetadata = value;
 
-        for (const [reportID, reportMetadata] of Object.entries(value)) {
-            if (!reportMetadata) {
-                continue;
-            }
-
-            const [, id] = reportID.split('_');
-            allReportMetadataKeyValue[id] = reportMetadata;
-        }
-    },
-});
 
 let allReportNameValuePair: OnyxCollection<ReportNameValuePairs>;
 Onyx.connectWithoutView({
@@ -2238,7 +2218,7 @@ function getMostRecentlyVisitedReport(reports: Array<OnyxEntry<Report>>, reportM
  * This function is used to find the last accessed report and we don't need to subscribe the data in the UI.
  * So please use `Onyx.connectWithoutView()` to get the necessary data when we remove the `Onyx.connect()`
  */
-function findLastAccessedReport(ignoreDomainRooms: boolean, openOnAdminRoom = false, policyID?: string, excludeReportID?: string): OnyxEntry<Report> {
+function findLastAccessedReport(ignoreDomainRooms: boolean, reportMetadata: OnyxCollection<ReportMetadata>, openOnAdminRoom = false, policyID?: string, excludeReportID?: string): OnyxEntry<Report> {
     // If it's the user's first time using New Expensify, then they could either have:
     //   - just a Concierge report, if so we'll return that
     //   - their Concierge report, and a separate report that must have deeplinked them to the app before they created their account.
@@ -2293,15 +2273,15 @@ function findLastAccessedReport(ignoreDomainRooms: boolean, openOnAdminRoom = fa
 
     // At least two reports remain: self DM and Concierge chat.
     // Return the most recently visited report. Get the last read report from the report metadata.
-    // If allReportMetadata is empty we'll return most recent report owned by user
-    if (isEmptyObject(allReportMetadata)) {
+    // If reportMetadata is empty we'll return most recent report owned by user
+    if (isEmptyObject(reportMetadata)) {
         const ownedReports = reportsValues.filter((report) => report?.ownerAccountID === currentUserAccountID);
         if (ownedReports.length > 0) {
             return lodashMaxBy(ownedReports, (a) => a?.lastReadTime ?? '');
         }
         return lodashMaxBy(reportsValues, (a) => a?.lastReadTime ?? '');
     }
-    return getMostRecentlyVisitedReport(reportsValues, allReportMetadata);
+    return getMostRecentlyVisitedReport(reportsValues, reportMetadata);
 }
 
 /**
@@ -3415,10 +3395,11 @@ function getParticipantsAccountIDsForDisplay(
     shouldExcludeHidden = false,
     shouldExcludeDeleted = false,
     shouldForceExcludeCurrentUser = false,
-    reportMetadataParam?: OnyxEntry<ReportMetadata>,
+    reportMetadataEntryParam?: OnyxEntry<ReportMetadata>,
+    reportMetadataCollection?: OnyxCollection<ReportMetadata>,
 ): number[] {
     const reportParticipants = report?.participants ?? {};
-    const reportMetadata = reportMetadataParam ?? getReportMetadata(report?.reportID);
+    const reportMetadata = reportMetadataEntryParam ?? getReportMetadata(report?.reportID, reportMetadataCollection ?? {});
     let participantsEntries = Object.entries(reportParticipants);
 
     // We should not show participants that have an optimistic entry with the same login in the personal details
@@ -3707,7 +3688,11 @@ function getIconsForIOUReport(report: OnyxInputOrEntry<Report>, personalDetails:
 /**
  * Helper function to get the icons for a group chat. Only to be used in getIcons().
  */
-function getIconsForGroupChat(report: OnyxInputOrEntry<Report>, formatPhoneNumber: LocaleContextProps['formatPhoneNumber']): Icon[] {
+function getIconsForGroupChat(
+    report: OnyxInputOrEntry<Report>,
+    formatPhoneNumber: LocaleContextProps['formatPhoneNumber'],
+    reportMetadata?: OnyxCollection<ReportMetadata>,
+): Icon[] {
     if (!report) {
         return [];
     }
@@ -3716,7 +3701,7 @@ function getIconsForGroupChat(report: OnyxInputOrEntry<Report>, formatPhoneNumbe
         source: report.avatarUrl || getDefaultGroupAvatar(report.reportID),
         id: -1,
         type: CONST.ICON_TYPE_AVATAR,
-        name: getGroupChatName(formatPhoneNumber, undefined, true, report),
+        name: getGroupChatName(formatPhoneNumber, undefined, true, report, undefined, reportMetadata),
     };
     return [groupChatIcon];
 }
@@ -3792,6 +3777,7 @@ function getIcons(
     policy?: OnyxInputOrEntry<Policy>,
     invoiceReceiverPolicy?: OnyxInputOrEntry<Policy>,
     isReportArchived = false,
+    reportMetadata?: OnyxCollection<ReportMetadata>,
 ): Icon[] {
     if (isEmptyObject(report)) {
         return [
@@ -3837,7 +3823,7 @@ function getIcons(
         return getIconsForParticipants([CONST.ACCOUNT_ID.NOTIFICATIONS ?? 0], personalDetails);
     }
     if (isGroupChat(report)) {
-        return getIconsForGroupChat(report, formatPhoneNumber);
+        return getIconsForGroupChat(report, formatPhoneNumber, reportMetadata);
     }
     if (isInvoiceReport(report)) {
         return getIconsForInvoiceReport(report, personalDetails, policy, invoiceReceiverPolicy);
@@ -5536,6 +5522,7 @@ function getReportActionMessage({
     childReportID?: string;
     reports?: Report[];
     personalDetails?: Partial<PersonalDetailsList>;
+    reportMetadataCollection?: OnyxCollection<ReportMetadata>;
 }) {
     if (isEmptyObject(reportAction)) {
         return '';
@@ -5601,6 +5588,7 @@ function getReportName(
     isReportArchived?: boolean,
     reports?: Report[],
     policies?: Policy[],
+    reportMetadataCollection?: OnyxCollection<ReportMetadata>,
 ): string {
     // Check if we can use report name in derived values - only when we have report but no other params
     const canUseDerivedValue =
@@ -5906,7 +5894,7 @@ function getReportName(
         const {originalID} = getOriginalMessage(parentReportAction) ?? {};
         const originalReport = allReports?.[`${ONYXKEYS.COLLECTION.REPORT}${originalID}`];
         // eslint-disable-next-line @typescript-eslint/no-deprecated -- temporarily disabling rule for deprecated functions out of issue scope
-        const reportName = getReportName(originalReport);
+        const reportName = getReportName(originalReport, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, reportMetadataCollection);
         // eslint-disable-next-line @typescript-eslint/no-deprecated -- temporarily disabling rule for deprecated functions out of issue scope
         return getCreatedReportForUnapprovedTransactionsMessage(originalID, reportName, translateLocal);
     }
@@ -6001,7 +5989,7 @@ function getReportName(
     }
 
     if (isGroupChat(report)) {
-        return getGroupChatName(formatPhoneNumberPhoneUtils, undefined, true, report) ?? '';
+        return getGroupChatName(formatPhoneNumberPhoneUtils, undefined, true, report, undefined, reportMetadataCollection ?? {});
     }
 
     if (isChatRoom(report)) {
@@ -10327,12 +10315,13 @@ function getTaskAssigneeChatOnyxData(
     title: string,
     assigneeChatReport: OnyxEntry<Report>,
     isOptimisticAssigneeChatReport?: boolean,
+    reportMetadataCollection?: OnyxCollection<ReportMetadata>,
 ): OnyxDataTaskAssigneeChat {
     // Set if we need to add a comment to the assignee chat notifying them that they have been assigned a task
     let optimisticAssigneeAddComment: OptimisticReportAction | undefined;
     // Set if this is a new chat that needs to be created for the assignee
     let optimisticChatCreatedReportAction: OptimisticCreatedReportAction | undefined;
-    const assigneeChatReportMetadata = getReportMetadata(assigneeChatReportID);
+    const assigneeChatReportMetadata = getReportMetadata(assigneeChatReportID, reportMetadataCollection ?? {});
     const currentTime = DateUtils.getDBTime();
     const optimisticData: Array<OnyxUpdate<typeof ONYXKEYS.COLLECTION.REPORT | typeof ONYXKEYS.COLLECTION.REPORT_METADATA | typeof ONYXKEYS.COLLECTION.REPORT_ACTIONS>> = [];
     const successData: Array<
@@ -12554,8 +12543,8 @@ function hasInvoiceReports() {
     return reports.some((report) => isInvoiceReport(report));
 }
 
-function getReportMetadata(reportID: string | undefined) {
-    return reportID ? allReportMetadataKeyValue[reportID] : undefined;
+function getReportMetadata(reportID: string | undefined, reportMetadata: OnyxCollection<ReportMetadata>): OnyxEntry<ReportMetadata> {
+    return reportID ? reportMetadata?.[`${ONYXKEYS.COLLECTION.REPORT_METADATA}${reportID}`] : undefined;
 }
 
 /**

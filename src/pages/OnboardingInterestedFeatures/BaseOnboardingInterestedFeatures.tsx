@@ -51,6 +51,7 @@ function BaseOnboardingInterestedFeatures({shouldUseNativeStyles}: BaseOnboardin
     const [userReportedIntegration] = useOnyx(ONYXKEYS.ONBOARDING_USER_REPORTED_INTEGRATION, {canBeMissing: true});
     const [introSelected] = useOnyx(ONYXKEYS.NVP_INTRO_SELECTED, {canBeMissing: true});
     const [activePolicyID] = useOnyx(ONYXKEYS.NVP_ACTIVE_POLICY_ID, {canBeMissing: true});
+    const [reportMetadata] = useOnyx(ONYXKEYS.COLLECTION.REPORT_METADATA);
     const {isBetaEnabled} = usePermissions();
     const [session] = useOnyx(ONYXKEYS.SESSION, {canBeMissing: false});
 
@@ -222,11 +223,10 @@ function BaseOnboardingInterestedFeatures({shouldUseNativeStyles}: BaseOnboardin
             // We need to wait the policy is created before navigating out the onboarding flow
             navigateAfterOnboardingWithMicrotaskQueue(
                 isSmallScreenWidth,
+                reportMetadata ?? {},
                 isBetaEnabled(CONST.BETAS.DEFAULT_ROOMS),
                 policyID,
                 adminsChatReportID,
-                // Onboarding tasks would show in Concierge instead of admins room for testing accounts, we should open where onboarding tasks are located
-                // See https://github.com/Expensify/App/issues/57167 for more details
                 (session?.email ?? '').includes('+'),
             );
         } catch (error) {
@@ -254,6 +254,7 @@ function BaseOnboardingInterestedFeatures({shouldUseNativeStyles}: BaseOnboardin
         currentUserPersonalDetails.accountID,
         currentUserPersonalDetails.email,
         introSelected,
+        reportMetadata,
     ]);
 
     // Create items for enabled features

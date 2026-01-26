@@ -56,6 +56,7 @@ function BaseOnboardingWorkspaceInvite({shouldUseNativeStyles}: BaseOnboardingWo
     const currentUserPersonalDetails = useCurrentUserPersonalDetails();
     const session = useSession();
     const {isBetaEnabled} = usePermissions();
+    const [reportMetadata] = useOnyx(ONYXKEYS.COLLECTION.REPORT_METADATA);
 
     const ineligibleInvitees = getIneligibleInvitees(policy?.employeeList);
     const excludedUsers: Record<string, boolean> = {};
@@ -126,11 +127,10 @@ function BaseOnboardingWorkspaceInvite({shouldUseNativeStyles}: BaseOnboardingWo
 
         navigateAfterOnboardingWithMicrotaskQueue(
             isSmallScreenWidth,
+            reportMetadata ?? {},
             isBetaEnabled(CONST.BETAS.DEFAULT_ROOMS),
             onboardingPolicyID,
             onboardingAdminsChatReportID,
-            // Onboarding tasks would show in Concierge instead of admins room for testing accounts, we should open where onboarding tasks are located
-            // See https://github.com/Expensify/App/issues/57167 for more details
             (session?.email ?? '').includes('+'),
         );
     };

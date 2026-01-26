@@ -14,6 +14,7 @@ import type {
     Report,
     ReportAction,
     ReportActions,
+    ReportMetadata,
     ReportNameValuePairs,
     Transaction,
     TransactionViolation,
@@ -159,6 +160,9 @@ type OptionRowLHNDataProps = {
 
     /** The current user's account ID */
     currentUserAccountID: number;
+
+    /** The report metadata for the report */
+    reportMetadata: OnyxEntry<ReportMetadata>;
 };
 
 type OptionRowLHNProps = {

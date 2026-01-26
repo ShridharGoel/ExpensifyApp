@@ -42,6 +42,7 @@ function OptionRowLHNData({
     lastAction,
     lastActionReport,
     currentUserAccountID,
+    reportMetadata,
     ...propsToForward
 }: OptionRowLHNDataProps) {
     const reportID = propsToForward.reportID;
@@ -78,6 +79,7 @@ function OptionRowLHNData({
             movedFromReport,
             movedToReport,
             currentUserAccountID,
+            reportMetadata,
         });
         if (deepEqual(item, optionItemRef.current)) {
             return optionItemRef.current;
@@ -114,6 +116,7 @@ function OptionRowLHNData({
         movedFromReport,
         movedToReport,
         currentUserAccountID,
+        reportMetadata,
     ]);
 
     return (

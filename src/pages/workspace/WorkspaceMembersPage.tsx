@@ -143,6 +143,7 @@ function WorkspaceMembersPage({personalDetails, route, policy}: WorkspaceMembers
     const [invitedEmailsToAccountIDsDraft] = useOnyx(`${ONYXKEYS.COLLECTION.WORKSPACE_INVITE_MEMBERS_DRAFT}${route.params.policyID.toString()}`, {canBeMissing: true});
     const isMobileSelectionModeEnabled = useMobileSelectionMode();
     const [session] = useOnyx(ONYXKEYS.SESSION, {canBeMissing: false});
+    const [allReportMetadata] = useOnyx(ONYXKEYS.COLLECTION.REPORT_METADATA, {canBeMissing: true});
     const currentUserAccountID = Number(session?.accountID);
     const selectionListRef = useRef<SelectionListHandle<MemberOption>>(null);
     const isFocused = useIsFocused();
@@ -271,7 +272,7 @@ function WorkspaceMembersPage({personalDetails, route, policy}: WorkspaceMembers
         // eslint-disable-next-line @typescript-eslint/no-deprecated
         InteractionManager.runAfterInteractions(() => {
             setSelectedEmployees([]);
-            removeMembers(policyID, selectedEmployees, policyMemberEmailsToAccountIDs);
+            removeMembers(policyID, selectedEmployees, policyMemberEmailsToAccountIDs, allReportMetadata ?? {});
         });
     };
 
