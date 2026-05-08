@@ -27,6 +27,7 @@ import navigationRef from '@libs/Navigation/navigationRef';
 import {getFilteredReportActionsForReportView, getOneTransactionThreadReportID} from '@libs/ReportActionsUtils';
 import {getReportOfflinePendingActionAndErrors, isReportTransactionThread} from '@libs/ReportUtils';
 import {buildCannedSearchQuery} from '@libs/SearchQueryUtils';
+import type {ArchivedReportsIDSet} from '@libs/SearchUIUtils';
 import {cancelSpan} from '@libs/telemetry/activeSpans';
 import markOpenReportEnd from '@libs/telemetry/markOpenReportEnd';
 import type {SkeletonSpanReasonAttributes} from '@libs/telemetry/useSkeletonSpan';
@@ -59,6 +60,9 @@ type MoneyRequestReportViewProps = {
 
     /** Callback executed on layout */
     onLayout?: (event: LayoutChangeEvent) => void;
+
+    /** Set of archived report ID keys */
+    archivedReportsIDSet: ArchivedReportsIDSet;
 };
 
 function goBackFromSearchMoneyRequest() {
@@ -105,7 +109,7 @@ function InitialLoadingSkeleton({styles, onLayout, reasonAttributes}: {styles: T
     );
 }
 
-function MoneyRequestReportView({report, reportLoadingState, shouldDisplayReportFooter, backToRoute, onLayout}: MoneyRequestReportViewProps) {
+function MoneyRequestReportView({report, reportLoadingState, shouldDisplayReportFooter, backToRoute, onLayout, archivedReportsIDSet}: MoneyRequestReportViewProps) {
     const styles = useThemeStyles();
     const {isOffline} = useNetwork();
 
@@ -188,9 +192,10 @@ function MoneyRequestReportView({report, reportLoadingState, shouldDisplayReport
                         }
                         Navigation.goBack(backToRoute);
                     }}
+                    archivedReportsIDSet={archivedReportsIDSet}
                 />
             ),
-        [backToRoute, isTransactionThreadView, report?.reportID],
+        [archivedReportsIDSet, backToRoute, isTransactionThreadView, report?.reportID],
     );
 
     // We need to cancel telemetry span when user leaves the screen before full report data is loaded
@@ -278,6 +283,7 @@ function MoneyRequestReportView({report, reportLoadingState, shouldDisplayReport
                             <ReportActionsView
                                 reportID={reportID}
                                 onLayout={onLayout}
+                                archivedReportsIDSet={archivedReportsIDSet}
                             />
                         )}
                         {shouldDisplayReportFooter ? (

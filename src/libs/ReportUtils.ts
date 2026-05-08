@@ -11532,26 +11532,17 @@ function isReportOutstanding(iouReport: OnyxInputOrEntry<Report>, policyID: stri
 function getOutstandingReportsForUser(
     policyID: string | undefined,
     reportOwnerAccountID: number | undefined,
-    archivedReportsIDSetOrReports?: ArchivedReportsIDSet | OnyxCollection<Report>,
-    reportsOrReportNameValuePairs?: OnyxCollection<Report> | OnyxCollection<ReportNameValuePairs> | boolean,
+    archivedReportsIDSet: ArchivedReportsIDSet,
+    reports: OnyxCollection<Report> = deprecatedAllReports,
     allowSubmitted = true,
 ): Array<OnyxEntry<Report>> {
-    const isUsingArchivedReportsIDSet = archivedReportsIDSetOrReports instanceof Set;
-    const reportNameValuePairs =
-        typeof reportsOrReportNameValuePairs === 'boolean' ? allReportNameValuePair : ((reportsOrReportNameValuePairs as OnyxCollection<ReportNameValuePairs>) ?? allReportNameValuePair);
-    const archivedReportsIDSet = isUsingArchivedReportsIDSet ? archivedReportsIDSetOrReports : buildArchivedReportsIDSet(reportNameValuePairs);
-    const reports = isUsingArchivedReportsIDSet
-        ? ((typeof reportsOrReportNameValuePairs === 'boolean' ? undefined : reportsOrReportNameValuePairs) as OnyxCollection<Report>) || deprecatedAllReports
-        : (archivedReportsIDSetOrReports as OnyxCollection<Report>) || deprecatedAllReports;
-    const shouldAllowSubmitted = typeof reportsOrReportNameValuePairs === 'boolean' ? reportsOrReportNameValuePairs : allowSubmitted;
-
     if (!reports) {
         return [];
     }
     return Object.values(reports).filter(
         (report) =>
             report?.pendingFields?.preview !== CONST.RED_BRICK_ROAD_PENDING_ACTION.DELETE &&
-            isReportOutstanding(report, policyID, archivedReportsIDSet, shouldAllowSubmitted) &&
+            isReportOutstanding(report, policyID, archivedReportsIDSet, allowSubmitted) &&
             report?.ownerAccountID === reportOwnerAccountID,
     );
 }
