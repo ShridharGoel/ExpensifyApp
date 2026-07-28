@@ -3523,6 +3523,50 @@ const CONST = {
         CREDIT_CARD: 'Credit Card',
     },
 
+    DUAL_ENTRY_CONFIG: {
+        COMPANY_ID: 'companyID',
+        ENABLE_NEW_CATEGORIES: 'enableNewCategories',
+        SYNC_TAX_RATES: 'syncTaxRates',
+        EXPORTER: 'exporter',
+        EXPORT_DATE: 'exportDate',
+        REIMBURSABLE: 'reimbursable',
+        NON_REIMBURSABLE: 'nonReimbursable',
+        CREDIT_CARD_ACCOUNT_ID: 'creditCardAccountID',
+        EXPORT_TO_MULTIPLE_ACCOUNTS: 'exportToMultipleAccounts',
+        EXPENSIFY_CARD_ACCOUNT_ID: 'expensifyCardAccountID',
+        DEFAULT_VENDOR_ID: 'defaultVendorID',
+        TRAVEL_INVOICING_PAYABLE_ACCOUNT_ID: 'travelInvoicingPayableAccountID',
+        ACCOUNTING_METHOD: 'accountingMethod',
+        AUTO_SYNC: 'autoSync',
+        SYNC_REIMBURSED_REPORTS: 'syncReimbursedReports',
+        BILL_PAYMENT_ACCOUNT_ID: 'billPaymentAccountID',
+        SYNC_EXPENSIFY_CARD_SETTLEMENTS: 'syncExpensifyCardSettlements',
+        SETTLEMENTS_BANK_ACCOUNT_ID: 'settlementsBankAccountID',
+        SYNC_TRAVEL_INVOICING_SETTLEMENTS: 'syncTravelInvoicingSettlements',
+        TRAVEL_INVOICING_SETTLEMENTS_BANK_ACCOUNT_ID: 'travelInvoicingSettlementsBankAccountID',
+        FIELD_MAPPING_PREFIX: 'fieldMapping_',
+        CARD_PROGRAM_ACCOUNT_PREFIX: 'cardProgramAccount_',
+    },
+
+    DUAL_ENTRY_MAPPING_VALUE: {
+        NONE: 'NONE',
+        TAG: 'TAG',
+    },
+
+    DUAL_ENTRY_EXPORT_DATE: {
+        LAST_EXPENSE: 'LAST_EXPENSE',
+        REPORT_EXPORTED: 'REPORT_EXPORTED',
+        REPORT_SUBMITTED: 'REPORT_SUBMITTED',
+    },
+
+    DUAL_ENTRY_EXPORT_REIMBURSABLE: {
+        VENDOR_BILL: 'VENDOR_BILL',
+    },
+
+    DUAL_ENTRY_EXPORT_NON_REIMBURSABLE: {
+        DIRECT_EXPENSE: 'DIRECT_EXPENSE',
+    },
+
     UPDATE_PERSONAL_BANK_ACCOUNT: {
         PAGE_NAME: {
             LEGAL_NAME: 'legal-name',
@@ -4248,6 +4292,7 @@ const CONST = {
                 SAGE_INTACCT: 'intacct',
                 CERTINIA: 'financialforce',
                 RILLET: 'rillet',
+                DUAL_ENTRY: 'dualEntry',
                 GUSTO: 'gusto',
                 ZENEFITS: 'zenefits',
                 MERGE_HR: 'merge_hris',
@@ -4264,6 +4309,7 @@ const CONST = {
                 QBD: 'quickbooks-desktop',
                 CERTINIA: 'certinia',
                 RILLET: 'rillet',
+                DUAL_ENTRY: 'dualentry',
                 GUSTO: 'gusto',
                 ZENEFITS: 'zenefits',
                 MERGE_HR: 'merge-hr',
@@ -4276,6 +4322,7 @@ const CONST = {
                 intacct: 'Sage Intacct',
                 financialforce: 'Certinia',
                 rillet: 'Rillet',
+                dualEntry: 'DualEntry',
                 gusto: 'Gusto',
                 billCom: 'Bill.com',
                 zenefits: 'TriNet',
@@ -4389,6 +4436,9 @@ const CONST = {
                 RILLET_SYNC_TITLE: 'rilletSyncTitle',
                 RILLET_SYNC_CONNECTION: 'rilletSyncConnection',
                 RILLET_SYNC_IMPORT_DATA: 'rilletSyncImportData',
+                DUAL_ENTRY_SYNC_TITLE: 'dualEntrySyncTitle',
+                DUAL_ENTRY_SYNC_CONNECTION: 'dualEntrySyncConnection',
+                DUAL_ENTRY_SYNC_IMPORT_DATA: 'dualEntrySyncImportData',
             },
             SYNC_STAGE_TIMEOUT_MINUTES: 20,
         },

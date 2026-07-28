@@ -1921,6 +1921,133 @@ type RilletConnectionsConfig = OnyxCommon.OnyxValueWithOfflineFeedback<
     RilletCodingOfflineFeedbackKeys | RilletExportOfflineFeedbackKeys | keyof RilletAutoSync | keyof RilletSync
 >;
 
+/** A company available through a DualEntry organization key. */
+type DualEntryCompany = {
+    id: string;
+    name: string;
+    currency: string;
+    parentCompanyID?: string;
+    isActive: boolean;
+    isElimination: boolean;
+};
+
+/** A chart of accounts entry in DualEntry. */
+type DualEntryAccount = {
+    id: string;
+    number: string;
+    name: string;
+    accountType: string;
+    currency?: string;
+    isActive: boolean;
+    updatedAt: string;
+};
+
+/** A selectable value belonging to a DualEntry classification. */
+type DualEntryClassificationValue = {
+    id: string;
+    name: string;
+    deactivated: boolean;
+};
+
+/** A classification available in DualEntry. */
+type DualEntryClassification = {
+    id: string;
+    name: string;
+    isActive: boolean;
+    requiredForRecords: string[];
+    values: DualEntryClassificationValue[];
+};
+
+/** A tax rate configured in DualEntry. */
+type DualEntryTaxRate = {
+    id: string;
+    code: string;
+    country: string;
+    description?: string;
+    percentage: string;
+    taxType: 'VAT' | 'GST';
+};
+
+/** A vendor configured in DualEntry. */
+type DualEntryVendor = {
+    id: string;
+    name: string;
+    companyID?: string;
+    email?: string;
+    isActive: boolean;
+};
+
+/** Cached reference data and settlement state retrieved from DualEntry. */
+type DualEntryConnectionData = {
+    companies?: DualEntryCompany[];
+    accounts?: DualEntryAccount[];
+    classifications?: DualEntryClassification[];
+    taxRates?: DualEntryTaxRate[];
+    vendors?: DualEntryVendor[];
+    settlementBankTransferIDs?: Record<string, string>;
+    travelSettlementJournalEntryIDs?: Record<string, string>;
+    settlementSyncStartEntryID?: number;
+    travelSettlementSyncStartEntryID?: number;
+};
+
+/** Coding configuration used when importing data from DualEntry. */
+type DualEntryCoding = {
+    fieldMappings?: Record<string, ValueOf<typeof CONST.DUAL_ENTRY_MAPPING_VALUE>>;
+    syncTaxRates: boolean;
+};
+
+type DualEntryCodingFieldMappingsOfflineFeedbackKey = `${typeof CONST.DUAL_ENTRY_CONFIG.FIELD_MAPPING_PREFIX}${string}`;
+type DualEntryCodingOfflineFeedbackKeys = keyof Omit<DualEntryCoding, 'fieldMappings'> | DualEntryCodingFieldMappingsOfflineFeedbackKey;
+
+/** Export configuration for sending expense data to DualEntry. */
+type DualEntryExport = {
+    exporter: string;
+    exportDate: ValueOf<typeof CONST.DUAL_ENTRY_EXPORT_DATE>;
+    reimbursable: ValueOf<typeof CONST.DUAL_ENTRY_EXPORT_REIMBURSABLE>;
+    nonReimbursable: ValueOf<typeof CONST.DUAL_ENTRY_EXPORT_NON_REIMBURSABLE>;
+    creditCardAccountID: string;
+    exportToMultipleAccounts: boolean;
+    cardProgramAccounts: Record<CardFeedWithNumber, string>;
+    expensifyCardAccountID: string;
+    defaultVendorID: string;
+    travelInvoicingPayableAccountID: string;
+    accountingMethod: ValueOf<typeof COMMON_CONST.INTEGRATIONS.ACCOUNTING_METHOD>;
+};
+
+type DualEntryExportCardProgramAccountsOfflineFeedbackKey = `${typeof CONST.DUAL_ENTRY_CONFIG.CARD_PROGRAM_ACCOUNT_PREFIX}${string}`;
+type DualEntryExportOfflineFeedbackKeys = keyof Omit<DualEntryExport, 'cardProgramAccounts'> | DualEntryExportCardProgramAccountsOfflineFeedbackKey;
+
+/** Automatic synchronization settings for DualEntry. */
+type DualEntryAutoSync = {
+    enabled: boolean;
+};
+
+/** Advanced synchronization settings for DualEntry. */
+type DualEntrySync = {
+    syncReimbursedReports: boolean;
+    billPaymentAccountID: string;
+    syncExpensifyCardSettlements: boolean;
+    settlementsBankAccountID: string;
+    syncTravelInvoicingSettlements: boolean;
+    travelInvoicingSettlementsBankAccountID: string;
+};
+
+/** Connection configuration for DualEntry. Credentials remain server-side. */
+type DualEntryConnectionsConfig = OnyxCommon.OnyxValueWithOfflineFeedback<
+    {
+        companyID?: string;
+        isConfigured: boolean;
+        enableNewCategories: boolean;
+        coding?: DualEntryCoding;
+        export?: DualEntryExport;
+        autoSync?: DualEntryAutoSync;
+        sync?: DualEntrySync;
+        errors?: OnyxCommon.Errors;
+        errorFields?: OnyxCommon.ErrorFields;
+    },
+    DualEntryCodingOfflineFeedbackKeys | DualEntryExportOfflineFeedbackKeys | keyof DualEntryAutoSync | keyof DualEntrySync
+>;
+
 /** Gusto connection data */
 type GustoConnectionData = Record<string, never>;
 
@@ -2125,6 +2252,9 @@ type Connections = {
 
     /** Rillet integration connection */
     [CONST.POLICY.CONNECTIONS.NAME.RILLET]: Connection<RilletConnectionData, RilletConnectionsConfig>;
+
+    /** DualEntry integration connection */
+    [CONST.POLICY.CONNECTIONS.NAME.DUAL_ENTRY]: Connection<DualEntryConnectionData, DualEntryConnectionsConfig>;
 
     /** Gusto integration connection */
     [CONST.POLICY.CONNECTIONS.NAME.GUSTO]: Connection<GustoConnectionData, GustoConnectionConfig>;
@@ -2938,4 +3068,13 @@ export type {
     RilletAutoSync,
     RilletSync,
     RilletSubsidiary,
+    DualEntryAccount,
+    DualEntryAutoSync,
+    DualEntryCoding,
+    DualEntryCompany,
+    DualEntryConnectionsConfig,
+    DualEntryConnectionData,
+    DualEntryExport,
+    DualEntrySync,
+    DualEntryVendor,
 };
