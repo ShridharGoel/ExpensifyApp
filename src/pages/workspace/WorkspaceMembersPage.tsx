@@ -589,7 +589,7 @@ function WorkspaceMembersPage({personalDetails, route, policy}: WorkspaceMembers
             options.push(memberOption);
         }
 
-        // Admin is a valid payer role, so the payer may be promoted to Admin (Admin and Payments Admin are the two roles that can pay).
+        // Admin can pay (write on workflow payments), so the payer may be promoted to Admin.
         if (hasAtLeastOneNonAdminRole && canAssignElevatedRoles) {
             options.push(adminOption);
         }
@@ -612,7 +612,7 @@ function WorkspaceMembersPage({personalDetails, route, policy}: WorkspaceMembers
             options.push(peopleAdminOption);
         }
 
-        // Payments Admin is a valid payer role, so the payer may be changed to Payments Admin (Admin and Payments Admin are the two roles that can pay).
+        // Payments Admin can pay (write on workflow payments), so the payer may be changed to Payments Admin.
         if (hasAtLeastOneNonPaymentsAdminRole && isControlPolicy(policy) && canAssignElevatedRoles) {
             options.push(paymentsAdminOption);
         }

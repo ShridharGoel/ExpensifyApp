@@ -217,6 +217,13 @@ function hasPolicyFeaturePermission(policy: OnyxInputOrEntry<Policy>, login: str
     return access === CONST.POLICY.POLICY_FEATURE_ACCESS.WRITE;
 }
 
+function canRoleWrite(role: string | undefined, feature: PolicyFeature): boolean {
+    if (!role) {
+        return false;
+    }
+    return ROLE_PERMISSION_BUNDLES[role]?.[feature] === CONST.POLICY.POLICY_FEATURE_ACCESS.WRITE;
+}
+
 function canMemberRead(policy: OnyxInputOrEntry<Policy>, login: string, feature: PolicyFeature): boolean {
     return hasPolicyFeaturePermission(policy, login, feature, CONST.POLICY.POLICY_FEATURE_ACCESS.READ);
 }
@@ -698,16 +705,17 @@ function getReimburserEmail(policy: OnyxEntry<Policy>): string | undefined {
 }
 
 /**
- * The roles that are allowed to pay (reimburse) on a workspace. The Authorized Payer (reimburser) must always hold one of
- * these, so any role change for a payer is restricted to this set.
- */
-const PAYER_ROLES = [CONST.POLICY.ROLE.ADMIN, CONST.POLICY.ROLE.PAYMENTS_ADMIN] as const;
-
-/**
- * Whether the given role is allowed to pay (reimburse) on a workspace.
+ * Whether the given role can pay (reimburse) on a workspace. Driven by write access to workflow
+ * payments so new customer roles inherit this without a hardcoded role list.
  */
 function canRolePay(role: string | undefined): boolean {
-    return PAYER_ROLES.some((payerRole) => payerRole === role);
+    return canRoleWrite(role, CONST.POLICY.POLICY_FEATURE.WORKFLOWS_PAYMENTS);
+}
+
+function getAssignablePayerRoles(policy: OnyxInputOrEntry<Policy>, login: string): string[] {
+    // Editor can pay, but NewDot does not offer it in the member role picker. Counting it
+    // would unlock the Role row on Team workspaces for Admin payers with no role they can pick.
+    return Object.keys(ROLE_PERMISSION_BUNDLES).filter((role) => canRolePay(role) && canMemberAssignRole(policy, login, role) && role !== CONST.POLICY.ROLE.EDITOR);
 }
 
 function isPolicyPayer(policy: OnyxEntry<Policy>, currentUserLogin: string | undefined): boolean {
@@ -3187,8 +3195,8 @@ export {
     isPolicyMember,
     isPolicyPayer,
     getReimburserEmail,
-    PAYER_ROLES,
     canRolePay,
+    getAssignablePayerRoles,
     arePaymentsEnabled,
     isSubmitterAndApprover,
     isSubmitAndClose,

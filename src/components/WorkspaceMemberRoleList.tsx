@@ -35,8 +35,8 @@ type WorkspaceMemberRoleListProps = {
     isLoading?: boolean;
     onSelectRole?: (value: ListItemType) => void;
 
-    /** When provided, restricts the selectable roles to this set (e.g. an Authorized Payer may only be an Admin or Payments Admin) */
-    allowedRoles?: Array<ValueOf<typeof CONST.POLICY.ROLE>>;
+    /** When provided, restricts the selectable roles to this set so an Authorized Payer stays on a role that can pay */
+    allowedRoles?: string[];
 };
 
 function WorkspaceMemberRoleList({role, policy, navigateBackTo = undefined, isLoading = false, onSelectRole = () => {}, allowedRoles = undefined}: WorkspaceMemberRoleListProps) {

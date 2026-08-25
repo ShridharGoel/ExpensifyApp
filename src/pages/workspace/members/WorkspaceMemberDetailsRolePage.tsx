@@ -11,7 +11,7 @@ import {isRuleBotEnforcingRules} from '@libs/AgentRulesUtils';
 import Navigation from '@libs/Navigation/Navigation';
 import type {PlatformStackScreenProps} from '@libs/Navigation/PlatformStackNavigation/types';
 import type {SettingsNavigatorParamList} from '@libs/Navigation/types';
-import {canMemberAssignRole, canRolePay, getReimburserEmail, PAYER_ROLES} from '@libs/PolicyUtils';
+import {canMemberAssignRole, canRolePay, getAssignablePayerRoles, getReimburserEmail} from '@libs/PolicyUtils';
 
 import AccessOrNotFoundWrapper from '@pages/workspace/AccessOrNotFoundWrapper';
 import withPolicyAndFullscreenLoading from '@pages/workspace/withPolicyAndFullscreenLoading';
@@ -40,10 +40,10 @@ function WorkspaceMemberDetailsRolePage({policy, personalDetails, route}: Worksp
     const memberLogin = personalDetails?.[accountID]?.login ?? '';
     const member = policy?.employeeList?.[memberLogin];
     const canManageSelectedMemberRole = canMemberAssignRole(policy, currentUserLogin, member?.role);
-    // The Authorized Payer (reimburser) must stay a valid payer, so restrict them to the roles that can pay (Admin or Payments Admin).
+    // The Authorized Payer must keep write access to workflow payments, so restrict them to roles that can pay.
     const reimburserEmail = getReimburserEmail(policy);
     const isReimburser = !!reimburserEmail && reimburserEmail === memberLogin;
-    const allowedRoles = isReimburser ? [...PAYER_ROLES] : undefined;
+    const allowedRoles = isReimburser ? getAssignablePayerRoles(policy, currentUserLogin) : undefined;
     useRedirectSubmitWorkspaceFeatureUpgrade({
         policy,
         backTo: ROUTES.WORKSPACE_MEMBER_DETAILS.getRoute(policyID, accountID),

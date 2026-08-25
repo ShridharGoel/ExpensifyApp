@@ -37,10 +37,10 @@ import {
     canMemberAssignRole,
     canMemberManageMemberWithRole,
     canMemberWrite,
+    getAssignablePayerRoles,
     getReimburserEmail,
     isControlPolicy,
     isPolicyApprover,
-    PAYER_ROLES,
     tryNavigateToSubmitWorkspaceUpgrade,
 } from '@libs/PolicyUtils';
 import shouldRenderTransferOwnerButton from '@libs/shouldRenderTransferOwnerButton';
@@ -145,12 +145,12 @@ function WorkspaceMemberDetailsPage({personalDetails, policy, route}: WorkspaceM
     const phoneNumber = getPhoneNumber(details);
     const reimburserEmail = getReimburserEmail(policy);
     const isReimburser = !!reimburserEmail && reimburserEmail === memberLogin;
-    // The Authorized Payer (reimburser) may only hold a role that can pay (Admin or Payments Admin), so they can only be
-    // changed to one of those roles. Keep the Role row interactive for them only when there is another payer role they can
-    // actually move to, for example promoting a non-admin payer to Admin, or switching between Admin and Payments Admin on a
-    // Control workspace. Otherwise, such as an Admin payer on a non-Control workspace where Payments Admin is unavailable,
-    // there is no valid change to make, so the row stays read-only.
-    const assignablePayerRoles = PAYER_ROLES.filter((payerRole) => canMemberAssignRole(policy, currentUserLogin, payerRole));
+    // The Authorized Payer must keep write access to workflow payments, so they can only change to another
+    // role that can pay. Keep the Role row interactive only when such a role is assignable, for example
+    // promoting a non-admin payer to Admin, or switching between roles that can pay on a Control workspace.
+    // Otherwise, such as an Admin payer on a Team workspace where Payments Admin is unavailable, there is
+    // no valid change so the row stays read-only.
+    const assignablePayerRoles = getAssignablePayerRoles(policy, currentUserLogin);
     const canReimburserChangeRole = assignablePayerRoles.some((payerRole) => payerRole !== member?.role);
     const canEditSelectedMemberRole = !isSelectedMemberOwner && !isSelectedMemberCurrentUser && canManageSelectedMemberRole && (!isReimburser || canReimburserChangeRole);
     const {isAccountLocked} = useLockedAccountState();
