@@ -577,8 +577,14 @@ function getQueryHashes(query: SearchQueryJSON) {
     }
 
     // Certain filters shouldn't affect whether two searchers are similar or not, since they dont
-    // actually filter out results
-    const similarSearchIgnoredFilters = new Set<SearchFilterKey>([CONST.SEARCH.SYNTAX_FILTER_KEYS.GROUP_CURRENCY]);
+    // actually filter out results. Feed and bank account refine results within the same tab
+    // (e.g. reconciliation), so they must not change the tab identity or the backend searchKey
+    // derived from it.
+    const similarSearchIgnoredFilters = new Set<SearchFilterKey>([
+        CONST.SEARCH.SYNTAX_FILTER_KEYS.GROUP_CURRENCY,
+        CONST.SEARCH.SYNTAX_FILTER_KEYS.FEED,
+        CONST.SEARCH.SYNTAX_FILTER_KEYS.BANK_ACCOUNT,
+    ]);
 
     // Certain filters' values are significant in deciding which search we are on, so we want to include
     // their value when computing the similarSearchHash
