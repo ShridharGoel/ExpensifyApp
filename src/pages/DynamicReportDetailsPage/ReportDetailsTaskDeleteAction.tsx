@@ -24,7 +24,6 @@ import type {OnyxEntry} from 'react-native-onyx';
 
 import {delegateEmailSelector} from '@selectors/Account';
 import React from 'react';
-import Onyx from 'react-native-onyx';
 
 import type {CaseID} from './types';
 
@@ -48,6 +47,7 @@ function ReportDetailsTaskDeleteActionContent({report, parentReport, parentRepor
     const expensifyIcons = useMemoizedLazyExpensifyIcons(['Trashcan']);
     const taskDeleteBackTo = Navigation.getTopmostSearchReportRouteParams()?.backTo;
     const hasOutstandingChildTask = useHasOutstandingChildTask(report);
+    const [reportNameValuePairs] = useOnyx(ONYXKEYS.COLLECTION.REPORT_NAME_VALUE_PAIRS);
     const [guideAccountIDs] = useOnyx(ONYXKEYS.DERIVED.GUIDE_ACCOUNT_IDS);
     const isAnonymousUser = useIsAnonymousUser();
     const [conciergeReportID] = useOnyx(ONYXKEYS.CONCIERGE_REPORT_ID);
@@ -57,9 +57,7 @@ function ReportDetailsTaskDeleteActionContent({report, parentReport, parentRepor
     const ancestors = useAncestors(report);
     const showDeleteModal = useReportDetailsDeleteModal(report.reportID, caseID, parentReportAction);
 
-    const deleteTransaction = async () => {
-        // eslint-disable-next-line rulesdir/no-onyx-get-snapshot-key -- Replaces a module-level Onyx.connect read only in this handler, so Search snapshot redirection never applied.
-        const reportNameValuePairs = await Onyx.get(ONYXKEYS.COLLECTION.REPORT_NAME_VALUE_PAIRS);
+    const deleteTransaction = () => {
         deleteTask(
             report,
             parentReport,
@@ -84,11 +82,7 @@ function ReportDetailsTaskDeleteActionContent({report, parentReport, parentRepor
             key={CONST.REPORT_DETAILS_MENU_ITEM.DELETE}
             icon={expensifyIcons.Trashcan}
             title={translate('common.delete')}
-            onPress={() =>
-                showDeleteModal(undefined, () => {
-                    deleteTransaction();
-                })
-            }
+            onPress={() => showDeleteModal(undefined, deleteTransaction)}
         />
     );
 }

@@ -27,7 +27,6 @@ import SCREENS from '@src/SCREENS';
 import INPUT_IDS from '@src/types/form/MoneyRequestRejectReasonForm';
 
 import React, {useEffect} from 'react';
-import Onyx from 'react-native-onyx';
 
 type SearchRejectReasonPageProps =
     | PlatformStackScreenProps<SearchReportActionsParamList, typeof SCREENS.SEARCH.MONEY_REQUEST_REPORT_REJECT_TRANSACTIONS>
@@ -40,6 +39,7 @@ function SearchRejectReasonPage({route}: SearchRejectReasonPageProps) {
     const {reportID} = route.params ?? {};
     const [allPolicies] = useOnyx(ONYXKEYS.COLLECTION.POLICY);
     const [allReports] = useOnyx(ONYXKEYS.COLLECTION.REPORT);
+    const [allReportNameValuePairs] = useOnyx(ONYXKEYS.COLLECTION.REPORT_NAME_VALUE_PAIRS);
     const allReportsTransactionsAndViolations = useAllReportsTransactionsAndViolations();
     const {translate} = useLocalize();
     const {getCurrencyDecimals} = useCurrencyListActions();
@@ -68,14 +68,12 @@ function SearchRejectReasonPage({route}: SearchRejectReasonPageProps) {
 
     const {isDelegateAccessRestricted} = useDelegateNoAccessState();
     const {showDelegateNoAccessModal} = useDelegateNoAccessActions();
-    const rejectSelectedMoneyRequests = async ({comment}: FormOnyxValues<typeof ONYXKEYS.FORMS.MONEY_REQUEST_REJECT_FORM>) => {
+    const rejectSelectedMoneyRequests = ({comment}: FormOnyxValues<typeof ONYXKEYS.FORMS.MONEY_REQUEST_REJECT_FORM>) => {
         if (isDelegateAccessRestricted) {
             showDelegateNoAccessModal();
             return;
         }
 
-        // eslint-disable-next-line rulesdir/no-onyx-get-snapshot-key -- Replaces a module-level Onyx.connect read only in this handler, so Search snapshot redirection never applied.
-        const allReportNameValuePairs = await Onyx.get(ONYXKEYS.COLLECTION.REPORT_NAME_VALUE_PAIRS);
         const urlToNavigateBack = rejectMoneyRequestsOnSearch({
             hash: currentSearchHash,
             selectedTransactions: selectedTransactionsForReject,
@@ -114,9 +112,7 @@ function SearchRejectReasonPage({route}: SearchRejectReasonPageProps) {
 
     return (
         <RejectReasonFormView
-            onSubmit={(values) => {
-                rejectSelectedMoneyRequests(values);
-            }}
+            onSubmit={rejectSelectedMoneyRequests}
             validate={validate}
         />
     );
