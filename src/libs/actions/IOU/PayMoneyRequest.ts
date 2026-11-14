@@ -267,6 +267,7 @@ function getPayMoneyRequestParams({
     let isEffectiveChatReportArchived = isChatIOUReportArchived;
     if (isIndividualInvoiceRoom(chatReport) && payAsBusiness && existingB2BInvoiceReport) {
         chatReport = existingB2BInvoiceReport;
+        // getParticipantsInvoiceReport skips archived invoice rooms, so existingB2BInvoiceReport is never archived.
         isEffectiveChatReportArchived = false;
     }
 

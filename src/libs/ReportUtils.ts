@@ -81,7 +81,6 @@ import type {EmptyObject} from '@src/types/utils/EmptyObject';
 import {isEmptyObject, isEmptyValueObject} from '@src/types/utils/EmptyObject';
 import type IconAsset from '@src/types/utils/IconAsset';
 
-import type {ReportNameValuePairsArchivedState} from '@selectors/ReportNameValuePairs';
 import type {ColorValue} from 'react-native';
 import type {NullishDeep, OnyxCollection, OnyxEntry, OnyxInputValue, OnyxUpdate} from 'react-native-onyx';
 import type {SvgProps} from 'react-native-svg';
@@ -2680,7 +2679,7 @@ function findLastAccessedReport(
     isAnonymousUser: boolean,
     openOnAdminRoom = false,
     excludeReportID?: string,
-    reportNameValuePairs?: OnyxCollection<ReportNameValuePairs | ReportNameValuePairsArchivedState>,
+    reportNameValuePairs?: OnyxCollection<ReportNameValuePairs>,
     reports?: OnyxCollection<Report>,
 ): LastAccessedReport | undefined {
     const reportsCollection = reports ?? deprecatedAllReports ?? {};
@@ -2780,7 +2779,7 @@ function isArchivedNonExpenseReport(report: OnyxInputOrEntry<Report>, isReportAr
  * Whether the provided report is an archived report
  */
 
-function isArchivedReport(reportNameValuePairs?: OnyxInputOrEntry<ReportNameValuePairs | ReportNameValuePairsArchivedState>): boolean {
+function isArchivedReport(reportNameValuePairs?: OnyxInputOrEntry<ReportNameValuePairs>): boolean {
     return !!reportNameValuePairs?.private_isArchived;
 }
 
@@ -3756,7 +3755,7 @@ function getIOUReportActionWithBadge({
         if (!iouReport) {
             // Fallback for p2p IOUs when the IOU report isn't loaded in Onyx yet (e.g. right after login).
             // Use the REPORTPREVIEW action's child* fields to determine PAY badge without the full report.
-            if (chatReport?.hasOutstandingChildRequest && !isChatReportArchived && canPayIOUFromReportAction(action, chatReport, currentUserAccountID)) {
+            if (chatReport?.hasOutstandingChildRequest && canPayIOUFromReportAction(action, chatReport, currentUserAccountID)) {
                 if (!earliestAction || isOlderReportAction(action, earliestAction)) {
                     earliestAction = action;
                     actionBadge = CONST.REPORT.ACTION_BADGE.PAY;

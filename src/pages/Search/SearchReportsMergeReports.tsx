@@ -195,6 +195,9 @@ function SearchMergeReports() {
         }
 
         const policyID = destinationReport.policyID;
+        const sourceParentReportID = sourceReportIDs
+            .map((sourceReportID) => allReports?.[`${ONYXKEYS.COLLECTION.REPORT}${sourceReportID}`]?.parentReportID)
+            .find((parentReportID): parentReportID is string => !!parentReportID);
         mergeReports({
             isVendorMatchingBetaEnabled,
             destinationReportID,
@@ -220,8 +223,8 @@ function SearchMergeReports() {
             delegateAccountID,
             getCurrencyDecimals,
             getCurrencySymbol,
-            // The merge candidates always share one parent chat, so its archived state covers every source report.
-            isChatReportArchived: isArchivedReport(reportNameValuePairs?.[`${ONYXKEYS.COLLECTION.REPORT_NAME_VALUE_PAIRS}${destinationReport.parentReportID}`]),
+            // Match the first source report parent chat ID that clearChatIOUReportID resolves.
+            isChatReportArchived: isArchivedReport(sourceParentReportID ? reportNameValuePairs?.[`${ONYXKEYS.COLLECTION.REPORT_NAME_VALUE_PAIRS}${sourceParentReportID}`] : undefined),
         });
 
         Navigation.dismissModal({

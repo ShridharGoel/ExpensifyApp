@@ -27,8 +27,8 @@ import ONYXKEYS from '@src/ONYXKEYS';
 
 import {guidedSetupAndTourStatusSelector} from '@selectors/Onboarding';
 import {pendingChatMembersSelector} from '@selectors/ReportMetaData';
-import {reportNameValuePairsArchivedSelector} from '@selectors/ReportNameValuePairs';
 import React from 'react';
+import Onyx from 'react-native-onyx';
 
 type ReportDetailsMenuLeaveItemProps = {
     reportID: string;
@@ -43,7 +43,6 @@ function ReportDetailsMenuLeaveItem({reportID}: ReportDetailsMenuLeaveItemProps)
     const [quickAction] = useOnyx(ONYXKEYS.NVP_QUICK_ACTION_GLOBAL_CREATE);
     const [reportNameValuePairs] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT_NAME_VALUE_PAIRS}${reportID}`);
     const [reportMetadata] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT_METADATA}${reportID}`, {selector: pendingChatMembersSelector});
-    const [reportNameValuePairsArchived] = useOnyx(ONYXKEYS.COLLECTION.REPORT_NAME_VALUE_PAIRS, {selector: reportNameValuePairsArchivedSelector});
     const [guideAccountIDs] = useOnyx(ONYXKEYS.DERIVED.GUIDE_ACCOUNT_IDS);
     const [conciergeReportID] = useOnyx(ONYXKEYS.CONCIERGE_REPORT_ID);
     const [introSelected] = useOnyx(ONYXKEYS.NVP_INTRO_SELECTED);
@@ -68,8 +67,10 @@ function ReportDetailsMenuLeaveItem({reportID}: ReportDetailsMenuLeaveItemProps)
     const isPolicyGuest = isPolicyGuestUtil(policy);
     const isRootGroupChat = isRootGroupChatUtil(report, isReportArchived);
 
-    const leaveChat = () => {
-        const lastAccessedReportID = findLastAccessedReport(false, guideAccountIDs, isAnonymousUser, false, report.reportID, reportNameValuePairsArchived)?.reportID;
+    const leaveChat = async () => {
+        // eslint-disable-next-line rulesdir/no-onyx-get-snapshot-key -- Replaces a module-level Onyx.connect read only in this handler, so Search snapshot redirection never applied.
+        const allReportNameValuePairs = await Onyx.get(ONYXKEYS.COLLECTION.REPORT_NAME_VALUE_PAIRS);
+        const lastAccessedReportID = findLastAccessedReport(false, guideAccountIDs, isAnonymousUser, false, report.reportID, allReportNameValuePairs)?.reportID;
         if (isRootGroupChat) {
             leaveGroupChat(
                 report,
