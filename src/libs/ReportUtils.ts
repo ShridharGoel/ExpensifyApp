@@ -145,7 +145,7 @@ import {buildPersonalDetailsUpdate, getAccountIDsByLogins, getLoginByAccountID, 
 import {getPolicyReimburserAccountID} from './PolicyPaymentUtils';
 import {
     arePaymentsEnabled,
-    canMemberRead as canMemberReadPolicyUtils,
+    canMemberRead,
     canMemberWrite as canMemberWritePolicyUtils,
     canCreateExpensesOnPolicy,
     canSendInvoiceFromWorkspace,
@@ -13441,7 +13441,7 @@ function canJoinChat(
     if (
         isUserCreatedPolicyRoom(report) &&
         report?.visibility === CONST.REPORT.VISIBILITY.RESTRICTED &&
-        !canMemberReadPolicyUtils(policy, currentUserEmail ?? deprecatedCurrentUserEmail ?? '', CONST.POLICY.POLICY_FEATURE.ROOMS)
+        !canMemberRead(policy, currentUserEmail ?? deprecatedCurrentUserEmail ?? '', CONST.POLICY.POLICY_FEATURE.ROOMS)
     ) {
         return false;
     }
